@@ -1,0 +1,1 @@
+{"results":[{"id":"R-MAIN","value":0.0,"unit":"MAE","precision":1,"source":"analysis/results.json","field":"holdout_mae","question_id":"Q1","model_id":"M-FOR","validation_ids":["V-FOR-HOLDOUT","V-FOR-BASELINE"]}]}

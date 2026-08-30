@@ -1,0 +1,1 @@
+Maximize a two-product allocation subject to capacity constraints.

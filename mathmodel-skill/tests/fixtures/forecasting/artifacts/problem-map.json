@@ -1,0 +1,1 @@
+{"questions":[{"id":"Q1","objective":"forecast final two observations","model_ids":["M-FOR"],"result_ids":["R-MAIN"],"validation_ids":["V-FOR-HOLDOUT","V-FOR-BASELINE"],"claim_ids":["C-MAIN"],"section":"body"}]}

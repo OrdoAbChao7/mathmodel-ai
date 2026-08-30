@@ -1,0 +1,1 @@
+Rank three alternatives with transparent direction-aware weighted scoring.

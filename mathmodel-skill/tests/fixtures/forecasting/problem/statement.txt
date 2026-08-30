@@ -1,0 +1,1 @@
+Forecast the final two time-ordered observations from a linear training segment.

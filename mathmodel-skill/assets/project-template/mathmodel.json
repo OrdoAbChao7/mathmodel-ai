@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "project_id": "demo-001",
+  "title": "待求解题目",
+  "contest": "CUMCM",
+  "problem_type": "optimization",
+  "inputs": {
+    "statements": ["problem/problem.pdf"],
+    "attachments": ["data/raw/attachment.xlsx"]
+  },
+  "commands": {"analyze": ["python", "analysis/run.py"]},
+  "paper": {"main": "paper/main.tex", "engine": "xelatex", "jobname": "paper"},
+  "quality": {
+    "target_total_pages": [32, 40],
+    "target_body_pages": [26, 34],
+    "max_appendix_body_ratio": 0.25,
+    "minimum_score": 85,
+    "minimum_figures": 8,
+    "required_figure_roles": ["data", "method", "result", "validation"]
+  }
+}

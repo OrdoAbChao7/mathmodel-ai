@@ -1,0 +1,42 @@
+\section{问题二：限时处理与低效率工时模型}
+
+\subsection{低效率工时分配}
+
+令$z_{dsk}$表示班次$s$中第$k$个相对小时（$k=0,\ldots,7$）处于低效率状态的工人数。每名工人恰有1个低效率小时，因此
+\begin{equation}
+\sum_{k=0}^{7}z_{dsk}=y_{ds},\qquad z_{dsk}\in\mathbb Z_{\ge0}.
+\label{eq:lowhour}
+\end{equation}
+低效率时段相对正常处理能力减少$25-10=15$件/人，故小时容量约束修正为
+\begin{equation}
+p_{dh}\le \sum_{s\in S}\delta_{sh}\left(25y_{ds}-15z_{ds,h-s}\right),
+\label{eq:capacity2}
+\end{equation}
+其中不属于班次的$z_{ds,h-s}$按0处理。该设计允许同班工人的低效率小时错峰，能够减少集中休息造成的能力骤降。
+
+\subsection{16时服务水平约束}
+
+用实际处理量表达“0--12时进货在16时前处理完”：
+\begin{equation}
+\sum_{h=0}^{15}p_{dh}\ge\sum_{h=0}^{12}a_{dh}.
+\label{eq:deadline}
+\end{equation}
+式\eqref{eq:deadline}允许13--15时新到货与早间货物共同排队，但截至16时的累计处理量必须足以覆盖全部早间到货。结合库存守恒式\eqref{eq:flow}，不会使用未来产能满足截止约束。
+
+问题二仍最小化$R_d^{(2)}=\sum_sy_{ds}$。30天共需11951人日，平均398.37人/天，峰值第12天581人。与问题一相比增加1160人日，即10.75\%。第8、9、13、27天等日期增幅较大，说明早间截止约束比全天总量下界更紧。
+
+\begin{table}[htbp]
+\centering
+\caption{问题一与问题二总体结果对比}
+\label{tab:summary}
+\begin{tabular}{lrrr}
+\toprule
+指标 & 问题一 & 问题二 & 变化\\
+\midrule
+30天总人日 & 10791 & 11951 & $+10.75\%$\\
+平均每日人数 & 359.70 & 398.37 & $+38.67$\\
+单日峰值人数 & 537 & 581 & $+44$\\
+峰值日期 & 第12天 & 第12天 & --\\
+\bottomrule
+\end{tabular}
+\end{table}

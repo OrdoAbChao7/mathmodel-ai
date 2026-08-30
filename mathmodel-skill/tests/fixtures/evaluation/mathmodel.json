@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "project_id": "fixture-evaluation",
+  "title": "Weighted multi-criteria evaluation",
+  "contest": "CUMCM",
+  "problem_type": "evaluation",
+  "inputs": {"statements": ["problem/statement.txt"], "attachments": ["data/raw/input.json"]},
+  "commands": {"solver": [], "analyze": ["python", "analysis/run.py"]},
+  "paper": {"main": "paper/main.tex", "engine": ".\\fake-compiler.cmd", "compiler_mode": "controlled_fake", "jobname": "fixture"},
+  "quality": {"target_total_pages": [3, 3], "target_body_pages": [1, 1], "max_appendix_body_ratio": 1, "minimum_score": 85, "minimum_figures": 4, "required_figure_roles": ["data", "method", "result", "validation"]}
+}

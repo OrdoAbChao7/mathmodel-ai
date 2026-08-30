@@ -1,0 +1,1 @@
+{"claims":[{"id":"C-MAIN","body":"The exhaustive search identifies x=2 and y=2 with objective 18 for the stated constraints.","result_ids":["R-MAIN"],"validation_ids":["V-OPT-HAND","V-OPT-SCENARIO"],"scope":"small deterministic fixture","failure_case":"outside this two-variable domain","section":"body"}]}

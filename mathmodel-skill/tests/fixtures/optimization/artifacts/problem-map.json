@@ -1,0 +1,1 @@
+{"questions":[{"id":"Q1","objective":"maximize allocation profit","model_ids":["M-OPT"],"result_ids":["R-MAIN"],"validation_ids":["V-OPT-HAND","V-OPT-SCENARIO"],"claim_ids":["C-MAIN"],"section":"body"}]}

@@ -1,0 +1,23 @@
+\section{核心库存平衡程序}
+
+\begin{lstlisting}[language=python]
+# Actual processing cannot exceed hourly capacity.
+for h in range(24):
+    terms = [(processing[h], 1)]
+    for s in starts:
+        if s <= h < s + 8:
+            terms += [(workers[s], -25)]
+            if degraded:
+                terms += [(low_hour[s, h-s], 15)]
+    add_constraint(terms, upper=0)
+
+# b_h = b_(h-1) + arrival_h - processing_h
+for h in range(24):
+    terms = [(backlog[h], 1), (processing[h], 1)]
+    if h > 0:
+        terms += [(backlog[h-1], -1)]
+    add_constraint(terms, lower=arrival[h], upper=arrival[h])
+add_constraint([(backlog[23], 1)], lower=0, upper=0)
+\end{lstlisting}
+
+完整程序位于\texttt{traning1/solve.py}，运行后自动重新生成全部结果、图形和Excel排班表。

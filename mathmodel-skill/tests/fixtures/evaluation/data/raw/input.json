@@ -1,0 +1,1 @@
+{"weights": {"cost": 0.3, "benefit": 0.4, "reliability": 0.3}, "alternatives": [{"id": "A", "cost": 3, "benefit": 8, "reliability": 9}, {"id": "B", "cost": 5, "benefit": 9, "reliability": 8}, {"id": "C", "cost": 7, "benefit": 7, "reliability": 7}]}

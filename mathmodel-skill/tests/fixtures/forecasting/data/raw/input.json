@@ -1,0 +1,1 @@
+{"observations": [{"time": 1, "value": 3}, {"time": 2, "value": 5}, {"time": 3, "value": 7}, {"time": 4, "value": 9}, {"time": 5, "value": 11}, {"time": 6, "value": 13}], "holdout": 2}

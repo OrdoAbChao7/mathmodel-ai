@@ -1,0 +1,40 @@
+# Generated/runtime state
+__pycache__/
+*.py[cod]
+.mathmodel/
+build/
+release/
+tmp/
+output/
+texput.log
+
+# Large downloaded reference repositories and binary source data
+mathmodel-skill/vendor/
+*.xlsx
+*.xls
+*.mp4
+*.tif
+*.bmp
+*.rar
+*.pack
+*.zip
+*.ttf
+*.doc
+*.docx
+
+# Generated LaTeX/PDF intermediates and previews
+*.aux
+*.log
+*.out
+*.toc
+*.idx
+*.ilg
+*.ind
+*.fls
+*.fdb_latexmk
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.eps

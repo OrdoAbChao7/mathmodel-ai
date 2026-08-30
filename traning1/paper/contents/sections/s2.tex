@@ -1,0 +1,47 @@
+\section{问题一：基于库存流量的日排班模型}
+
+\subsection{班次选择与人数约束}
+
+定义覆盖参数
+\begin{equation}
+\delta_{sh}=\begin{cases}1,&s\le h<s+8,\\0,&\text{其他}\end{cases}
+\end{equation}
+每日恰好选择5个班次，并使未选择班次人数为0：
+\begin{equation}
+\sum_{s\in S}x_{ds}=5,\qquad x_{ds}\le y_{ds}\le Mx_{ds},
+\label{eq:shift-select}
+\end{equation}
+其中$M=1000$。下界$x_{ds}\le y_{ds}$保证所选班次至少有1名工人，避免“选择空班次”。
+
+\subsection{实际处理量与库存守恒}
+
+第$h$小时的实际处理量不能超过在岗人员产能：
+\begin{equation}
+0\le p_{dh}\le 25\sum_{s\in S}\delta_{sh}y_{ds}.
+\label{eq:capacity1}
+\end{equation}
+以$b_{d,-1}=0$为初值，逐小时库存满足
+\begin{equation}
+b_{dh}=b_{d,h-1}+a_{dh}-p_{dh},\qquad b_{dh}\ge0.
+\label{eq:flow}
+\end{equation}
+式\eqref{eq:flow}是模型的核心。它要求实际处理量来自已经到达的货物，因而不会把早期未使用的产能“储存”到晚间。当天处理完对应终端条件
+\begin{equation}b_{d,23}=0.\label{eq:endday}\end{equation}
+
+对每一天分别求解
+\begin{equation}
+\min \quad R_d^{(1)}=\sum_{s\in S}y_{ds},
+\label{eq:obj1}
+\end{equation}
+约束为式\eqref{eq:shift-select}--\eqref{eq:endday}。所有$x,y$取整数，$p,b$为非负连续变量，因此该问题属于混合整数线性规划\cite{dantzig1963}。
+
+\subsection{求解结果}
+
+图\ref{fig:daily}给出每日进货量与最优人数。30天共需10791人日，平均359.70人/天，峰值出现在第12天，为537人。由于每人每班最多处理$8\times25=200$件，该结果接近日总量下界，但仍通过逐小时库存约束保证班次覆盖可行。完整班次起点及人数见附件结果表。
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=.92\textwidth]{figures/daily_demand_workers.pdf}
+  \caption{每日到货总量与问题一、问题二最优人数}
+  \label{fig:daily}
+\end{figure}

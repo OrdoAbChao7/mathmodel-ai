@@ -1,0 +1,1 @@
+{"results":[{"id":"R-MAIN","value":["A","B","C"],"unit":"rank","precision":0,"source":"analysis/results.json","field":"ranking","question_id":"Q1","model_id":"M-EVAL","validation_ids":["V-EVAL-NORM","V-EVAL-SENS"]}]}

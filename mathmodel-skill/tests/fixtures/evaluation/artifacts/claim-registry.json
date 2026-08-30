@@ -1,0 +1,1 @@
+{"claims":[{"id":"C-MAIN","body":"Alternative A ranks first under the stated weights and remains first under the documented weight perturbation.","result_ids":["R-MAIN"],"validation_ids":["V-EVAL-NORM","V-EVAL-SENS"],"scope":"three-alternative teaching fixture","failure_case":"larger policy changes can reverse ranks","section":"body"}]}

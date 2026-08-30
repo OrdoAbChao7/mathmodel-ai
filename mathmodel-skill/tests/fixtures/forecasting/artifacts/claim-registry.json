@@ -1,0 +1,1 @@
+{"claims":[{"id":"C-MAIN","body":"The time-ordered linear forecast has holdout MAE 0.0 and improves on persistence by 3.0 units.","result_ids":["R-MAIN"],"validation_ids":["V-FOR-HOLDOUT","V-FOR-BASELINE"],"scope":"six-observation deterministic fixture","failure_case":"nonlinear trend","section":"body"}]}

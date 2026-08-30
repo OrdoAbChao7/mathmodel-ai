@@ -1,0 +1,1 @@
+{"results":[{"id":"R-MAIN","value":18,"unit":"profit units","precision":0,"source":"analysis/results.json","field":"objective_value","question_id":"Q1","model_id":"M-OPT","validation_ids":["V-OPT-HAND","V-OPT-SCENARIO"]}]}

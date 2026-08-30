@@ -1,0 +1,1 @@
+{"models":[{"id":"M-OPT","question_id":"Q1","method":"exhaustive integer enumeration","objective":"max 5x+4y","seed":0,"limitation":"two-variable teaching instance"}]}

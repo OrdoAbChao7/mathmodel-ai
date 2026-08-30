@@ -1,0 +1,145 @@
+"""Create and adopt mathmodel project scaffolding without overwriting user files."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+
+_DIRECTORIES = (
+    "problem",
+    "data/raw",
+    "data/processed",
+    "analysis/models",
+    "analysis/tests",
+    "artifacts",
+    "paper/figures",
+    "paper/tables",
+    "build",
+    ".mathmodel/runs",
+)
+_PROJECT_FILES = ("mathmodel.json", "analysis/run.py", "paper/main.tex")
+_PROBLEM_TYPES = ("forecasting", "optimization", "evaluation", "mechanism", "simulation", "hybrid")
+_DOCUMENT_SUFFIXES = {".pdf", ".doc", ".docx", ".txt"}
+_SCRIPT_SUFFIXES = {".py", ".m", ".r", ".jl", ".ipynb", ".sh"}
+
+
+def _template_root() -> Path:
+    return Path(__file__).resolve().parents[2] / "assets" / "project-template"
+
+
+def _write_missing(path: Path, content: str) -> bool:
+    if path.exists():
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    return True
+
+
+def _ensure_directories(root: Path, created: list[Path]) -> None:
+    for relative in _DIRECTORIES:
+        directory = root / relative
+        if not directory.exists():
+            directory.mkdir(parents=True, exist_ok=True)
+            created.append(directory)
+        keep = directory / ".gitkeep"
+        if _write_missing(keep, ""):
+            created.append(keep)
+
+
+def _config(project_id: str, title: str, problem_type: str) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "project_id": project_id,
+        "title": title,
+        "contest": "CUMCM",
+        "problem_type": problem_type,
+        "inputs": {"statements": ["problem/problem.pdf"], "attachments": ["data/raw/attachment.xlsx"]},
+        "commands": {"analyze": ["python", "analysis/run.py"]},
+        "paper": {"main": "paper/main.tex", "engine": "xelatex", "jobname": "paper"},
+        "quality": {
+            "target_total_pages": [32, 40],
+            "target_body_pages": [26, 34],
+            "max_appendix_body_ratio": 0.25,
+            "minimum_score": 85,
+            "minimum_figures": 8,
+            "required_figure_roles": ["data", "method", "result", "validation"],
+        },
+    }
+
+
+def init_project(target: Path, project_id: str, title: str, problem_type: str) -> list[Path]:
+    """Create a new project contract and directories, preserving existing files."""
+    if problem_type not in _PROBLEM_TYPES:
+        raise ValueError(f"unsupported problem type: {problem_type}")
+    root = Path(target)
+    root.mkdir(parents=True, exist_ok=True)
+    created: list[Path] = []
+    _ensure_directories(root, created)
+    files = {
+        "mathmodel.json": json.dumps(_config(project_id, title, problem_type), ensure_ascii=False, indent=2) + "\n",
+        "analysis/run.py": (_template_root() / "analysis-run.py").read_text(encoding="utf-8"),
+        "paper/main.tex": (_template_root() / "paper" / "main.tex").read_text(encoding="utf-8"),
+    }
+    for relative, content in files.items():
+        path = root / relative
+        if _write_missing(path, content):
+            created.append(path)
+    return created
+
+
+def adopt_project(target: Path) -> list[Path]:
+    """Add missing project metadata/directories and record a non-destructive inventory."""
+    root = Path(target)
+    root.mkdir(parents=True, exist_ok=True)
+    preexisting = {
+        path.relative_to(root).as_posix()
+        for path in root.rglob("*")
+        if path.is_file() and path.name != "adoption-report.json"
+    }
+    created: list[Path] = []
+    _ensure_directories(root, created)
+    config_path = root / "mathmodel.json"
+    if not config_path.exists():
+        content = json.dumps(_config(root.name or "adopted-project", "Adopted project", "hybrid"), ensure_ascii=False, indent=2) + "\n"
+        if _write_missing(config_path, content):
+            created.append(config_path)
+    inventory = _adoption_inventory(root)
+    report = {
+        "project": str(root.resolve()),
+        "existing_files": inventory["existing_files"],
+        "statements": inventory["statements"],
+        "attachments": inventory["attachments"],
+        "papers": inventory["papers"],
+        "scripts": inventory["scripts"],
+        "conflicts": sorted(path for path in _PROJECT_FILES if path in preexisting),
+    }
+    report_path = root / "adoption-report.json"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    if report_path not in created:
+        created.append(report_path)
+    return created
+
+
+def _adoption_inventory(root: Path) -> dict[str, list[str]]:
+    """Classify existing files using project-relative paths only."""
+    paths = sorted(
+        path.relative_to(root).as_posix()
+        for path in root.rglob("*")
+        if path.is_file() and path.name != "adoption-report.json" and path.name != ".gitkeep"
+    )
+    categories = {"statements": [], "attachments": [], "papers": [], "scripts": []}
+    for relative in paths:
+        path = Path(relative)
+        suffix = path.suffix.lower()
+        if path.parts[:1] == ("data",) and path.parts[1:2] == ("raw",):
+            categories["attachments"].append(relative)
+        elif path.parts[:1] == ("problem",) and suffix in _DOCUMENT_SUFFIXES:
+            categories["statements"].append(relative)
+        elif suffix in {".tex", ".pdf"}:
+            categories["papers"].append(relative)
+        elif suffix in _SCRIPT_SUFFIXES:
+            categories["scripts"].append(relative)
+    return {"existing_files": paths, **categories}

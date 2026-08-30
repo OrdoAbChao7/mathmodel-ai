@@ -1,0 +1,1 @@
+{"weights":{"cost":0.3,"benefit":0.4,"reliability":0.3},"normalized":{"A":{"cost":1.0,"benefit":0.5,"reliability":1.0},"B":{"cost":0.5,"benefit":1.0,"reliability":0.5},"C":{"cost":0.0,"benefit":0.0,"reliability":0.0}},"scores":{"A":0.8,"B":0.7,"C":0.0},"ranking":["A","B","C"],"sensitivity_ranking":["A","B","C"]}

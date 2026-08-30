@@ -1,0 +1,4 @@
+interface:
+  display_name: "MathModel Paper Factory"
+  short_description: "Coordinate traceable CUMCM papers"
+  default_prompt: "Use $mathmodel-skill to build and audit a CUMCM paper."

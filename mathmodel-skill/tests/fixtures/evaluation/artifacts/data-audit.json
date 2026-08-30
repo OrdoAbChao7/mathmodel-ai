@@ -1,0 +1,1 @@
+{"status":"SUCCESS","files":[{"path":"data/raw/input.json","units":"cost, benefit, reliability","missingness":0,"preprocessing":"direction-aware min-max normalization"}]}
