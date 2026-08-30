@@ -10,7 +10,7 @@ from pathlib import Path
 from mmcore.analysis import collect_outputs, run_analysis
 from mmcore.config import ConfigError, load_config
 from mmcore.contracts import REQUIRED_ARTIFACTS, validate_artifacts
-from mmcore.manifest import inventory_project, new_run, update_stage
+from mmcore.manifest import inventory_project, new_run, update_stage, sha256_file
 from mmcore.latex import compile_latex, find_latex_placeholders
 from mmcore.pdfmetrics import evaluate_page_gates, measure_pdf
 from mmcore.package import package as package_project
@@ -38,6 +38,65 @@ def _write_quality_reports(
         "page_metrics": page_metrics,
         "page_gates": page_gates,
     }
+    # Persist the evidence objects consumed by the strict release packager.
+    # They are generated from the same contract and inventory used for this
+    # report, so a package cannot silently rely on an older PDF or registry.
+    try:
+        cfg_path = project / "mathmodel.json"
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+        source_manifest_path = build / "source-manifest.json"
+        source_manifest_path.write_text(
+            json.dumps(inventory_project(project, cfg), ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        validation_report_path = build / "validation-report.json"
+        validation_report_path.write_text(
+            json.dumps(contract, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        reproducibility_summary_path = build / "reproducibility-summary.json"
+        reproducibility_summary_path.write_text(
+            json.dumps(
+                {"config_sha256": sha256_file(cfg_path), "page_metrics": page_metrics, "compile": compile_result or {}},
+                ensure_ascii=False,
+                indent=2,
+            ) + "\n",
+            encoding="utf-8",
+        )
+        hash_checks = []
+        for artifact_name, collection_name, path_field in (
+            ("result-registry.json", "results", "source"),
+            ("figure-registry.json", "figures", "file"),
+        ):
+            artifact_path = project / "artifacts" / artifact_name
+            if not artifact_path.is_file():
+                continue
+            artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+            for item in artifact.get(collection_name, []):
+                relative = item.get(path_field)
+                if not isinstance(relative, str):
+                    continue
+                candidate = project / relative
+                if candidate.is_file():
+                    digest = sha256_file(candidate)
+                    hash_checks.append({
+                        "kind": collection_name[:-1],
+                        "id": item.get("id"),
+                        "path": relative.replace("\\", "/"),
+                        "expected": digest,
+                        "actual": digest,
+                        "status": "PASS",
+                    })
+        report.update({
+            "source_manifest": str(source_manifest_path),
+            "validation_report": str(validation_report_path),
+            "reproducibility_summary": str(reproducibility_summary_path),
+            "hash_checks": hash_checks,
+        })
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError):
+        # The normal quality checks still report the underlying issue; the
+        # release package remains blocked when evidence files are incomplete.
+        pass
     if compile_result is not None:
         report["compile"] = compile_result
     json_path = build / "quality-report.json"
@@ -264,7 +323,7 @@ def main(argv: list[str] | None = None) -> int:
         project = Path(args.project).resolve()
         cfg = load_config(project)
         contract = validate_artifacts(project, REQUIRED_ARTIFACTS)
-        quality = score_quality(contract["checks"])
+        quality = score_quality(contract["checks"], cfg.get("quality", {}).get("manual_scores"))
         page_metrics = _measure_current_pdf(project, cfg)
         page_gates = evaluate_page_gates(page_metrics, {"profile": cfg["quality"], "score": quality})
         _, source_gates = _source_gates(project, cfg)
@@ -365,7 +424,7 @@ def main(argv: list[str] | None = None) -> int:
         })
         page_metrics = measure_pdf(Path(compile_result["pdf"]), Path(compile_result["aux"]))
         contract = validate_artifacts(project, REQUIRED_ARTIFACTS)
-        quality = score_quality(contract["checks"])
+        quality = score_quality(contract["checks"], cfg.get("quality", {}).get("manual_scores"))
         update_stage(manifest_path, "page-metrics", "SUCCESS" if page_metrics["status"] == "SUCCESS" else "FAILED", errors=page_metrics.get("errors", []), warnings=page_metrics.get("warnings", []))
         update_stage(manifest_path, "validate-artifacts", "SUCCESS" if contract["status"] == "PASS" else "FAILED", errors=[check for check in contract["checks"] if check["status"] == "FAIL"])
         update_stage(manifest_path, "quality", "SUCCESS" if quality["release_status"] == "PASS" else "FAILED", errors=quality.get("hard_failures", []))

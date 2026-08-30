@@ -12,10 +12,10 @@
 安全容量不应在所有小时平均分配，而应优先配置在历史误差方差较大的高峰时段。若可估计误差标准差$\sigma_{dh}$，可以令$s_{dh}=\kappa\sigma_{dh}$，其中$\kappa$由期望服务水平确定。这样，服务承诺不再依赖单一预测值，而是对一定范围内的需求波动具有缓冲。
 
 另一方面，安全容量会增加人数，因此需要把风险成本和用工成本放在同一目标中：
-\begin{equation}
+ \begin{equation}
  \min\; \sum_{d,s}y_{ds}
- \lambda\sum_{d,h}s_{dh}
- \gamma\sum_{d,h}b_{dh}.
+ +\lambda\sum_{d,h}s_{dh}
+ +\gamma\sum_{d,h}b_{dh}.
 \end{equation}
 第一项控制人员规模，第二项控制为不确定性预留的能力，第三项控制日内积压。$\lambda$越大，模型越倾向于通过增加早班人员获得稳定性；$\gamma$越大，模型越倾向于提前处理货物，减少库存峰值。基准模型相当于把安全容量和库存惩罚系数设为零，但仍保留硬性的清零和截止约束。
 
@@ -38,11 +38,11 @@
 \quad k=1,\ldots,K.
 \end{equation}
 如果低效率小时属于人员行为而非需求场景，也可以让$z$在场景间共用，从而得到更保守的部署方案。场景模型的目标可以是最坏场景目标，也可以是期望目标：
-\begin{equation}
+ \begin{equation}
  \min \; \sum_{d,s}y_{ds}
- \beta\max_k\sum_{d,h}b_{dh}^{(k)}
-\left(1-\beta\right)\sum_k\pi_k
-\sum_{d,h}b_{dh}^{(k)}.
+ +\beta\max_k\sum_{d,h}b_{dh}^{(k)}
+ +\left(1-\beta\right)\sum_k\pi_k
+ \sum_{d,h}b_{dh}^{(k)}.
 \end{equation}
 其中$\pi_k$为场景概率，$\beta$控制保守程度。$\beta=1$强调极端风险，$\beta=0$强调平均表现。本文基准数据可直接作为中心场景，再从历史误差或上下浮动比例构造其余场景。
 

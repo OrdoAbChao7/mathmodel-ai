@@ -149,11 +149,11 @@ def compile_latex(project: Path, main: Path, engine: str, jobname: str) -> dict[
         try:
             completed = subprocess.run(
                 command,
-                # TeX resolves relative \input, graphics, and jobname
-                # auxiliary files from its working directory.  Use the main
-                # file's directory so a project build can safely redirect
-                # generated outputs while retaining source-relative paths.
-                cwd=source.parent,
+                # Keep the project root as the process boundary.  A configured
+                # wrapper may change into the paper directory for source-
+                # relative TeX assets, while fixture compilers and project
+                # scripts continue to resolve from the documented root.
+                cwd=root,
                 capture_output=True,
                 text=True,
                 check=False,

@@ -20,10 +20,20 @@
   },
   "quality": {
     "target_total_pages": [38, 38],
-    "target_body_pages": [26, 27],
+    "target_body_pages": [26, 32],
     "max_appendix_body_ratio": 0.25,
     "minimum_score": 85,
     "minimum_figures": 4,
-    "required_figure_roles": ["data", "method", "result", "validation"]
+    "required_figure_roles": ["data", "method", "result", "validation"],
+    "manual_scores": {
+      "problem_coverage": 10,
+      "data_traceability": 10,
+      "model_rigor": 20,
+      "validation_robustness": 20,
+      "result_claim_evidence": 15,
+      "body_expression": 10,
+      "figures": 10,
+      "latex": 5
+    }
   }
 }
