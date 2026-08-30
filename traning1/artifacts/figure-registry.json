@@ -1,0 +1,36 @@
+{
+  "figures": [
+    {
+      "id": "f-data",
+      "role": "data",
+      "file": "paper/figures/arrival_heatmap.pdf",
+      "script": "solve.py",
+      "label": "fig:heatmap",
+      "claim_ids": ["c1"]
+    },
+    {
+      "id": "f-method",
+      "role": "method",
+      "file": "paper/figures/shift_start_frequency.pdf",
+      "script": "solve.py",
+      "label": "fig:shiftfreq",
+      "claim_ids": ["c1", "c2"]
+    },
+    {
+      "id": "f-result",
+      "role": "result",
+      "file": "paper/figures/daily_demand_workers.pdf",
+      "script": "solve.py",
+      "label": "fig:daily",
+      "claim_ids": ["c1", "c2"]
+    },
+    {
+      "id": "f-validation",
+      "role": "validation",
+      "file": "paper/figures/constraint_increment.pdf",
+      "script": "solve.py",
+      "label": "fig:increment",
+      "claim_ids": ["c2", "c3"]
+    }
+  ]
+}

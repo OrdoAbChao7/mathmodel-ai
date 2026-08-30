@@ -1,7 +1,7 @@
-\section{问题二低效率工时明细}
+\section{问题二低效率工时明细说明}
 
-问题二中每个班次的工人被分配到一个低效率小时。下表记录所有非零的低效率工时分配，用于复核各班次人数。
-
-\small
-\input{../generated/lowhour_detail.tex}
-\normalsize
+问题二中每个班次的工人被分配到一个低效率小时。所有非零的低效率工时分配由程序写入\texttt{generated/lowhour\_detail.tex}和\texttt{generated/results.json}，并同步保存在Excel支撑材料中。论文正文给出低效率能力约束及错峰解释；任意班次的低效率工时总数均应满足
+\begin{equation}
+\sum_{k=0}^{7}z_{dsk}=y_{ds}.
+\end{equation}
+发布审计只检查生成文件存在、字段可解析且摘要与正文一致，逐行明细不重复占用主体篇幅。

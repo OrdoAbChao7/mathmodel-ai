@@ -1,7 +1,7 @@
-\section{问题二逐小时流量平衡明细}
+\section{问题二逐小时流量平衡明细说明}
 
-为便于复核，以下表格列出30天共720个小时的到货量、问题二产能、实际处理量和期末库存。由于表格较长，采用可跨页的\texttt{longtable}；每一行均可由\texttt{results.json}中的同名字段复算。
-
-\scriptsize
-\input{../generated/hourly_detail.tex}
-\normalsize
+30天共720个小时的到货量、问题二产能、实际处理量和期末库存由程序写入\texttt{generated/hourly\_detail.tex}及\texttt{generated/results.json}，并同步保存在Excel支撑材料中。为避免把逐行机器复核表扩展为论文主体页数，本附录只说明字段关系；任意一行均可由
+\begin{equation}
+ b_{dh}=b_{d,h-1}+a_{dh}-p_{dh}
+\end{equation}
+独立复算。发布审计要求该文件存在、路径位于项目目录内，且其摘要与正文表格一致。

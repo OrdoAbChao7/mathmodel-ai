@@ -1,0 +1,12 @@
+{
+  "status": "SUCCESS",
+  "files": [
+    {
+      "path": "paper/附件.xlsx",
+      "units": "件 per hour",
+      "records": 720,
+      "missingness": 0,
+      "preprocessing": "date-hour key validation and daily aggregation"
+    }
+  ]
+}

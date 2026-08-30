@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "project_id": "traning1-logistics-scheduling",
+  "title": "物流分拣中心三问动态排班与月度编制优化",
+  "contest": "CUMCM",
+  "problem_type": "optimization",
+  "inputs": {
+    "statements": ["paper/contents/info.tex"],
+    "attachments": ["paper/附件.xlsx"]
+  },
+  "commands": {
+    "solver": [],
+    "analyze": []
+  },
+  "paper": {
+    "main": "paper/main38.tex",
+    "engine": "compile-paper.cmd",
+    "compiler_mode": "xelatex_wrapper",
+    "jobname": "main38"
+  },
+  "quality": {
+    "target_total_pages": [38, 38],
+    "target_body_pages": [26, 27],
+    "max_appendix_body_ratio": 0.25,
+    "minimum_score": 85,
+    "minimum_figures": 4,
+    "required_figure_roles": ["data", "method", "result", "validation"]
+  }
+}

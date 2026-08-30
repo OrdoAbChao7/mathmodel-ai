@@ -1,0 +1,34 @@
+{
+  "validations": [
+    {
+      "id": "v1",
+      "question_id": "q1",
+      "method": "independent hourly inventory recheck",
+      "metric": "end-of-day backlog and shift count",
+      "threshold": "backlog=0 and exactly five non-empty shifts",
+      "result": "PASS",
+      "status": "PASS",
+      "failure_case": "negative inventory or empty selected shift"
+    },
+    {
+      "id": "v2",
+      "question_id": "q2",
+      "method": "independent capacity and deadline recheck",
+      "metric": "16:00 service slack",
+      "threshold": "processed through hour 15 >= arrivals through hour 12",
+      "result": "PASS",
+      "status": "PASS",
+      "failure_case": "early arrivals remain unprocessed at deadline"
+    },
+    {
+      "id": "v3",
+      "question_id": "q3",
+      "method": "independent worker-day matrix recheck",
+      "metric": "coverage, workdays, and rolling windows",
+      "threshold": "23 workdays and every eight-day window <=7",
+      "result": "PASS",
+      "status": "PASS",
+      "failure_case": "coverage shortfall or eight consecutive workdays"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "results": [
+    {
+      "id": "r1",
+      "value": 10791,
+      "unit": "person-days",
+      "precision": 0,
+      "source": "results.json",
+      "field": "q1_total_person_days",
+      "question_id": "q1",
+      "model_id": "m1",
+      "validation_ids": ["v1"]
+    },
+    {
+      "id": "r2",
+      "value": 11951,
+      "unit": "person-days",
+      "precision": 0,
+      "source": "results.json",
+      "field": "q2_total_person_days",
+      "question_id": "q2",
+      "model_id": "m2",
+      "validation_ids": ["v2"]
+    },
+    {
+      "id": "r3",
+      "value": 581,
+      "unit": "workers",
+      "precision": 0,
+      "source": "results.json",
+      "field": "q3_hired_workers",
+      "question_id": "q3",
+      "model_id": "m3",
+      "validation_ids": ["v3"]
+    }
+  ]
+}

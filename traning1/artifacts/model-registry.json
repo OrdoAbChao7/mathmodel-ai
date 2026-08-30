@@ -1,0 +1,25 @@
+{
+  "models": [
+    {
+      "id": "m1",
+      "question_id": "q1",
+      "method": "hourly inventory-flow mixed integer linear program",
+      "objective": "minimize daily staffing",
+      "assumptions": ["five continuous eight-hour shifts", "same-day clearing"]
+    },
+    {
+      "id": "m2",
+      "question_id": "q2",
+      "method": "inventory-flow MILP with staggered low-efficiency hours and 16:00 service constraint",
+      "objective": "minimize daily staffing under service level",
+      "assumptions": ["one low-efficiency hour per worker"]
+    },
+    {
+      "id": "m3",
+      "question_id": "q3",
+      "method": "worker-day binary coverage model with rolling eight-day windows",
+      "objective": "minimize monthly hired workers",
+      "assumptions": ["23 workdays per worker", "at most seven consecutive workdays"]
+    }
+  ]
+}

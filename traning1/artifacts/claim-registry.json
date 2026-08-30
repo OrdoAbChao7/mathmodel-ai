@@ -1,0 +1,31 @@
+{
+  "claims": [
+    {
+      "id": "c1",
+      "body": "问题一在当日清零和五班次约束下需要10791人日，峰值为537人。",
+      "result_ids": ["r1"],
+      "validation_ids": ["v1"],
+      "scope": "30-day hourly logistics data",
+      "failure_case": "ignoring hourly arrival timing",
+      "section": "body"
+    },
+    {
+      "id": "c2",
+      "body": "加入16时服务截止和低效率小时后，问题二需要11951人日，峰值为581人。",
+      "result_ids": ["r2"],
+      "validation_ids": ["v2"],
+      "scope": "service-constrained daily scheduling",
+      "failure_case": "synchronized low-efficiency hours",
+      "section": "body"
+    },
+    {
+      "id": "c3",
+      "body": "问题三的581名月度编制达到峰值下界，并满足23个工日和连续工作不超过7天。",
+      "result_ids": ["r3"],
+      "validation_ids": ["v3"],
+      "scope": "monthly worker-day coverage",
+      "failure_case": "concentrated rest days",
+      "section": "body"
+    }
+  ]
+}

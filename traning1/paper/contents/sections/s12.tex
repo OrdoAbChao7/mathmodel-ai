@@ -1,0 +1,140 @@
+\section{综合决策实验与模型解释}
+
+前文分别从日内流量、服务截止和月度人员覆盖三个层面给出了模型。为了避免把三个问题理解为互不相关的三个最优值，本节进一步从决策链角度解释结果：问题一提供基础产能基线，问题二把服务承诺转化为额外的人力成本，问题三再把日需求向量转化为固定编制与休息日安排。这样处理的意义在于，管理者可以根据业务变化选择重新求解的层级，而不必每次都从头建立模型。
+
+\subsection{从货物流到人力需求的层级传递}
+
+令$A_d$表示第$d$天总到货量，$A_d^{\mathrm{early}}$表示0--12时到货量，$R_d^{(1)}$和$R_d^{(2)}$分别表示问题一、问题二的最低人数。三个问题之间的传递关系可写为
+\begin{equation}
+ A_d=\sum_{h=0}^{23}a_{dh},\qquad
+ A_d^{\mathrm{early}}=\sum_{h=0}^{12}a_{dh},\qquad
+ R_d^{(j)}=\Phi_j(a_{d0},\ldots,a_{d,23}),
+\end{equation}
+其中映射$\Phi_j$并不是简单的比例换算，而是由班次连续性、库存非负和服务截止共同决定的整数规划值。问题三使用向量$(R_1^{(2)},\ldots,R_{30}^{(2)})$作为覆盖需求，因而日内模型的任何修订都会通过该向量传递到月度编制。
+
+为度量这种传递，定义三类增量：
+\begin{equation}
+ \Delta_d^{\mathrm{service}}=R_d^{(2)}-R_d^{(1)},\qquad
+ \Delta_d^{\mathrm{peak}}=R_d^{(2)}-\left\lceil\frac{A_d}{185}\right\rceil,
+ \qquad
+ \rho_d=\frac{A_d^{\mathrm{early}}}{A_d}.
+\end{equation}
+其中$\Delta_d^{\mathrm{service}}$衡量服务承诺导致的额外人数，$\Delta_d^{\mathrm{peak}}$衡量时序约束相对于全天总量下界的剩余影响，$\rho_d$则是识别早间压力的无量纲指标。三者联合使用比单独观察日总量更能解释第8、9、13、27日等日期的需求变化。
+
+\begin{table}[htbp]
+\centering
+\caption{三层决策链的输入、输出与责任边界}
+\label{tab:decision-chain}
+\begin{tabular}{p{.18\textwidth}p{.25\textwidth}p{.38\textwidth}}
+\toprule
+层级 & 决策对象 & 主要回答的问题\\
+\midrule
+日内基线 & 班次起点、人数、处理量、库存 & 在只要求当日清零时，最低需要多少作业能力？\\
+服务计划 & 低效率小时、16时前处理量 & 为满足早间服务承诺，需要增加多少提前产能？\\
+月度编制 & 招工数、休息日、班次分配 & 如何用固定员工覆盖30天需求并满足劳动规则？\\
+运营复盘 & 库存、利用率、截止余量 & 哪些小时是真正瓶颈，哪些冗余可以调度？\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{约束的边际价值分析}
+
+最优人数不仅是一个结果，也可以理解为约束逐步加入后的边际代价。设$V_0$为只考虑总量的理论下界，$V_1$为加入连续班次和库存守恒后的最优值，$V_2$为进一步加入低效率小时和16时截止后的最优值，则可以定义
+\begin{equation}
+ C_{\mathrm{time}}=V_1-V_0,\qquad
+ C_{\mathrm{service}}=V_2-V_1,
+\end{equation}
+分别表示时间结构成本与服务水平成本。由于本文的$V_1$和$V_2$均由逐日模型直接求得，表\ref{tab:summary}中的人日差额就是30天尺度上的$C_{\mathrm{service}}$。这种分解可以为管理层提供比“增加了10.75\%”更具体的解释：增加的人力不是程序误差，而是为早间货物提前准备的可购买服务能力。
+
+图\ref{fig:increment}展示了这种边际成本在日期维度上的分布。若某日的增量较大，应优先查看该日的早间到货占比和16时前库存，而不是立即提高全月固定编制。只有当高增量日期具有稳定的季节性，或效率下降情景具有较高发生概率时，才有必要把临时机动人员转化为长期编制。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=.88\textwidth]{figures/constraint_increment.pdf}
+\caption{约束增量的日期分布：服务成本集中在少数压力日}
+\label{fig:increment-body}
+\end{figure}
+
+进一步地，对任意小时定义边际库存变化
+\begin{equation}
+ g_{dh}=b_{dh}-b_{d,h-1}=a_{dh}-p_{dh},
+\end{equation}
+并将$g_{dh}>0$的小时称为积压形成小时，将$g_{dh}<0$的小时称为积压消化小时。这样，库存曲线的上升段对应需求冲击，下降段对应班次交叠或后续产能释放。图\ref{fig:backlog}中的平均曲线只能说明总体规律，真正的运营诊断应回到每一天的$g_{dh}$序列。
+
+\subsection{利用率、库存与服务水平的联合判断}
+
+单独追求高利用率可能造成服务风险：如果在早间到货尚未全部处理时，人员已经被安排在较晚班次，全天平均利用率仍可能不低，但16时服务约束会失败。因此本文采用三维指标组：
+\begin{equation}
+ U_d=\frac{\sum_h p_{dh}}{\sum_h q_{dh}},\qquad
+ B_d^{\max}=\max_h b_{dh},\qquad
+ S_d=P_d^{(0,15)}-A_d^{(0,12)},
+\end{equation}
+其中$q_{dh}$为对应小时可提供的处理能力，$U_d$为日平均能力利用率，$B_d^{\max}$为最大库存，$S_d$为截止余量。可行方案必须满足$B_d^{\max}\ge0$且$S_d\ge0$；在多个方案均可行时，才有必要比较$U_d$和$B_d^{\max}$的运营质量。
+
+\begin{table}[htbp]
+\centering
+\caption{运营监控指标及其异常解释}
+\label{tab:monitor}
+\begin{tabular}{p{.20\textwidth}p{.22\textwidth}p{.40\textwidth}}
+\toprule
+指标 & 正常含义 & 异常时的优先排查方向\\
+\midrule
+$U_d$ & 有效产能的总体使用程度 & 设备停机、班次过度重叠或预测偏低\\
+$B_d^{\max}$ & 日内最大待处理量 & 高峰到货、班次起点过晚或处理能力不足\\
+$S_d$ & 16时服务安全余量 & 早班人数、低效率小时分配与早间预测误差\\
+$e_{dh}$ & 小时可用但未使用的能力 & 到货尚未发生，或班次配置存在结构性冗余\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+图\ref{fig:utilization}给出问题二能力利用率的总体分布。需要强调的是，利用率并不等同于员工忙碌率：处理能力是一个上限，实际处理量还受到货物到达的约束。因而在低谷小时出现较低利用率是流量模型的合理结果，不能简单据此削减班次；若同时观察到高库存和低利用率，才说明班次时序与货物流存在错配。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=.84\textwidth]{figures/capacity_utilization.pdf}
+\caption{能力利用率的分布及其对运营诊断的含义}
+\label{fig:utilization-body}
+\end{figure}
+
+\subsection{敏感性实验的决策含义}
+
+将处理效率缩放系数记为$\alpha$，问题二的有效小时能力可写为
+\begin{equation}
+ q_{dh}(\alpha)=\alpha\sum_s\delta_{sh}\left(25y_{ds}-15z_{ds,h-s}\right).
+\end{equation}
+当$\alpha$变化时，最优班次起点也可能变化，因此不能只用$R_d(1/\alpha)$近似预测人数。表\ref{tab:sensitivity}和表\ref{tab:sensitivity2}给出了三个效率情景的重新求解结果：效率下降5\%时总人日增加到12576，峰值增加到611；效率提高5\%时总人日下降到11383，峰值降为553。结果显示，峰值日比普通日期更早触发离散的人数跳变。
+
+为便于实际使用，可将效率情景转化为编制决策矩阵。若效率下降属于短时故障，应使用临时机动池；若效率下降来自持续的设备老化，则应把维修投入与增员成本进行比较；若效率提高来自培训，则应在模型中更新低效率小时的处理能力，而不是直接把节省的人数视为永久冗余。
+
+\begin{table}[htbp]
+\centering
+\caption{效率情景到运营动作的映射}
+\label{tab:scenario-action}
+\begin{tabular}{p{.20\textwidth}p{.23\textwidth}p{.40\textwidth}}
+\toprule
+情景 & 模型信号 & 建议动作\\
+\midrule
+$\alpha=0.95$ & 峰值人数升至611 & 预置临时人员，提前检查16时前库存\\
+$\alpha=1.00$ & 基准需求581人 & 使用问题三的固定编制与轮休矩阵\\
+$\alpha=1.05$ & 峰值人数降至553 & 将节省能力用于减少加班或设备维护窗口\\
+预测偏差 & $a_{dh}$整体上移 & 重新生成日模型，不直接沿用旧班次\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{从月度排班到滚动重排}
+
+问题三的可行矩阵提供的是一个月度基准，而不是不可改变的静态表。若第$d$天有工人临时缺勤，可把对应的$w_{id}$固定为0，并重新求解覆盖约束；若某日需求上调，则把$r_d$替换为新的需求值，并优先检查$N=581$是否仍可行。若不可行，模型可以输出最小增员数或给出需要外部临时工覆盖的缺口。
+
+滚动重排时建议保留三个不变层次：第一，货物流层的库存守恒和日末清零不能放宽；第二，服务层的16时截止应继续作为硬约束；第三，人员层的既有工日与休息窗口应尽量固定，仅对受影响日期做局部调整。这样既能保持结果的可解释性，又能避免每次预测更新都导致全月人员大幅换班。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=.88\textwidth]{figures/monthly_roster.pdf}
+\caption{月度到岗人数与最低需求：固定编制下的覆盖冗余}
+\label{fig:roster-body}
+\end{figure}
+
+\subsection{本节小结}
+
+综合分析表明，本文的最优解应被理解为一条可追溯的决策链，而不是若干孤立表格。日总量决定容量规模，小时到货时序决定班次位置，16时服务承诺决定提前产能，低效率小时决定有效处理能力，月度工日和连续工作规则又决定固定编制能否落地。通过库存、利用率、截止余量和敏感性情景的联合监控，管理者可以区分“需求真的增加”“班次位置不合理”和“设备效率下降”三类原因，并选择相应的重排、增员或维护动作。

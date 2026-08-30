@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import shutil
 import subprocess
+import os
 from pathlib import Path
 from typing import Any
 
@@ -132,8 +133,15 @@ def compile_latex(project: Path, main: Path, engine: str, jobname: str) -> dict[
         "-halt-on-error",
         f"-output-directory={output_dir}",
         f"-jobname={jobname}",
+        f"-aux-directory={output_dir}",
         str(source),
     ]
+    # Windows batch wrappers are executable through the command interpreter,
+    # but Python cannot launch them with shell=False.  The engine path is
+    # already resolved from the project configuration and is checked by the
+    # caller, so enable the platform-native interpreter only for .cmd/.bat
+    # wrappers; ordinary engines retain shell=False.
+    use_shell = os.name == "nt" and Path(engine).suffix.lower() in {".cmd", ".bat"}
     for pass_number in (1, 2):
         result["commands"].append(command.copy())
         stdout_path = output_dir / f"pass-{pass_number}.stdout.log"
@@ -141,11 +149,15 @@ def compile_latex(project: Path, main: Path, engine: str, jobname: str) -> dict[
         try:
             completed = subprocess.run(
                 command,
-                cwd=root,
+                # TeX resolves relative \input, graphics, and jobname
+                # auxiliary files from its working directory.  Use the main
+                # file's directory so a project build can safely redirect
+                # generated outputs while retaining source-relative paths.
+                cwd=source.parent,
                 capture_output=True,
                 text=True,
                 check=False,
-                shell=False,
+                shell=use_shell,
             )
         except FileNotFoundError as exc:
             result["errors"].append(_record("LATEX-ENGINE-001", "LaTeX engine is unavailable", evidence={"error": str(exc), "engine": engine}))
@@ -163,6 +175,18 @@ def compile_latex(project: Path, main: Path, engine: str, jobname: str) -> dict[
             shutil.copyfile(engine_log, preserved_log)
             result["logs"].append(str(preserved_log))
             warnings, errors = _scan_log(preserved_log)
+            if pass_number == 1:
+                # Forward references are expected before the first auxiliary
+                # file has been fully written.  Keep strict diagnostics on
+                # the final pass, where unresolved references are real
+                # release blockers.
+                errors = [
+                    item for item in errors
+                    if item["rule"] not in {
+                        "LATEX-UNDEFINED-REF-001",
+                        "LATEX-UNDEFINED-CITATION-001",
+                    }
+                ]
             result["warnings"].extend(warnings)
             result["errors"].extend(errors)
         if completed.returncode != 0:
