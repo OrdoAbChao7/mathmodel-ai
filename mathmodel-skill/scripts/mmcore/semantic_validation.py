@@ -10,6 +10,8 @@ from typing import Any, Callable
 
 import yaml
 
+from .experiment import evaluate_experiment_provenance
+
 _OPERATORS: dict[str, Callable[[float, float], bool]] = {
     "<": operator.lt, "<=": operator.le, ">": operator.gt,
     ">=": operator.ge, "==": operator.eq, "!=": operator.ne,
@@ -194,6 +196,8 @@ def evaluate_semantic_validation(project: Path, config: dict[str, Any]) -> dict[
         g4_checks.extend(validation_checks)
         raw = validation_data.get("validations")
         validation_ids = [item["id"] for item in raw if isinstance(item, dict) and _text(item.get("id"))] if isinstance(raw, list) else []
+    experiment_report = evaluate_experiment_provenance(Path(project), config)
+    g4_checks.extend(experiment_report.get("checks", []))
     g4_status = "PASS" if g4_checks and all(check["status"] == "PASS" for check in g4_checks) else "FAIL"
     falsification_data, falsification_error = _read_json(Path(project) / "artifacts" / "falsification.json")
     g5_checks = []
@@ -206,4 +210,4 @@ def evaluate_semantic_validation(project: Path, config: dict[str, Any]) -> dict[
             g5_checks.append(_check("G5-ARTIFACT-METADATA-001", "FAIL", "falsification artifact metadata is missing or invalid"))
         g5_checks.extend(_falsification_checks(Path(project), falsification_data, validation_ids))
     g5_status = "PASS" if g4_status == "PASS" and g5_checks and all(check["status"] == "PASS" for check in g5_checks) else "FAIL"
-    return {"status": "PASS" if g4_status == "PASS" and g5_status == "PASS" else "FAIL", "mode": mode, "profile": profile.get("profile_id"), "rule_version": profile.get("rule_version"), "g4": {"status": g4_status, "checks": g4_checks, "validation_ids": validation_ids}, "g5": {"status": g5_status, "checks": g5_checks}}
+    return {"status": "PASS" if g4_status == "PASS" and g5_status == "PASS" else "FAIL", "mode": mode, "profile": profile.get("profile_id"), "rule_version": profile.get("rule_version"), "experiment_provenance": experiment_report, "g4": {"status": g4_status, "checks": g4_checks, "validation_ids": validation_ids}, "g5": {"status": g5_status, "checks": g5_checks}}

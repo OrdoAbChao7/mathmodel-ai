@@ -1,4 +1,5 @@
 import json
+import hashlib
 import sys
 import tempfile
 import unittest
@@ -36,6 +37,18 @@ class SemanticValidationTests(unittest.TestCase):
 
     def install_valid(self, observed=6.47, claimed_status="FAIL"):
         write_json(self.root, "analysis/metrics.json", {"rmse": observed})
+        (self.root / "analysis/model.py").write_text("print('model')", encoding="utf-8")
+        (self.root / "data").mkdir(parents=True, exist_ok=True)
+        (self.root / "data/input.csv").write_text("x,y\n1,2\n", encoding="utf-8")
+        (self.root / "mathmodel.json").write_text('{"schema_version":2}', encoding="utf-8")
+        digest = lambda relative: hashlib.sha256((self.root / relative).read_bytes()).hexdigest()
+        write_json(self.root, "artifacts/experiment-registry.json", {"schema_version": 1, "generated_by": "local_runner", "experiments": [{
+            "id": "EXP-001", "run_id": "run-001", "question_id": "Q1", "model_id": "M1",
+            "code_hashes": {"analysis/model.py": digest("analysis/model.py")}, "input_hashes": {"data/input.csv": digest("data/input.csv")},
+            "config_hash": digest("mathmodel.json"), "seed": 7, "environment": {"python_version": "3.13", "platform": "Windows"},
+            "started_at": "2026-09-01T00:00:00+00:00", "ended_at": "2026-09-01T00:01:00+00:00",
+            "metrics": ["analysis/metrics.json"], "figures": [], "result_artifacts": ["analysis/metrics.json"],
+        }]})
         validation = {
             "schema_version": 1,
             "validations": [{
