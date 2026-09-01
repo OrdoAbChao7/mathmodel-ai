@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "case_id": "fixture-forecasting",
+      "title": "Forecasting regression fixture",
+      "problem_type": "forecasting",
+      "project": "mathmodel-skill/tests/fixtures/forecasting",
+      "source": "repository fixture",
+      "enabled": true
+    },
+    {
+      "case_id": "fixture-optimization",
+      "title": "Optimization regression fixture",
+      "problem_type": "optimization",
+      "project": "mathmodel-skill/tests/fixtures/optimization",
+      "source": "repository fixture",
+      "enabled": true
+    },
+    {
+      "case_id": "fixture-evaluation",
+      "title": "Evaluation regression fixture",
+      "problem_type": "evaluation",
+      "project": "mathmodel-skill/tests/fixtures/evaluation",
+      "source": "repository fixture",
+      "enabled": true
+    },
+    {
+      "case_id": "training-001",
+      "title": "Training paper factory case",
+      "problem_type": "optimization",
+      "project": "traning1",
+      "source": "repository training case",
+      "enabled": true
+    }
+  ]
+}
