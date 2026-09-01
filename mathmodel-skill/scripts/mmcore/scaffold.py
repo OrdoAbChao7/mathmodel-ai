@@ -20,7 +20,7 @@ _DIRECTORIES = (
     ".mathmodel/runs",
 )
 _PROJECT_FILES = ("mathmodel.json", "analysis/run.py", "paper/main.tex")
-_PROBLEM_TYPES = ("forecasting", "optimization", "evaluation", "mechanism", "simulation", "hybrid")
+_PROBLEM_TYPES = ("forecasting", "optimization", "evaluation", "mechanism", "simulation", "classification", "statistics", "hybrid")
 _EXECUTION_MODES = ("research_autonomous", "competition_assisted", "competition_max")
 _DOCUMENT_SUFFIXES = {".pdf", ".doc", ".docx", ".txt"}
 _SCRIPT_SUFFIXES = {".py", ".m", ".r", ".jl", ".ipynb", ".sh"}

@@ -64,6 +64,14 @@ class ConfigTests(unittest.TestCase):
         write_json(self.root / "mathmodel.json", cfg)
         self.assertEqual(load_config(self.root)["schema_version"], 2)
 
+    def test_load_config_accepts_classification_and_statistics_profiles(self):
+        for problem_type in ("classification", "statistics"):
+            with self.subTest(problem_type=problem_type):
+                cfg = valid_config()
+                cfg["problem_type"] = problem_type
+                write_json(self.root / "mathmodel.json", cfg)
+                self.assertEqual(load_config(self.root)["problem_type"], problem_type)
+
     def test_load_config_rejects_unknown_schema_version(self):
         cfg = valid_config()
         cfg["schema_version"] = 999

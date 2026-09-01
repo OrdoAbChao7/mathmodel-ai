@@ -11,7 +11,7 @@ from .schema import supported_artifact_schema
 
 
 _FORMAL_MODES = {"competition_assisted", "competition_max"}
-_PROBLEM_TYPES = {"forecasting", "optimization", "evaluation", "mechanism", "simulation", "hybrid"}
+_PROBLEM_TYPES = {"forecasting", "optimization", "evaluation", "mechanism", "simulation", "classification", "statistics", "hybrid"}
 _HASH_FILES = {
     "model_registry_hash": "artifacts/model-registry.json",
     "result_registry_hash": "artifacts/result-registry.json",

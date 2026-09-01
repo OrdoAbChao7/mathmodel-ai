@@ -21,6 +21,8 @@ _PROBLEM_TYPES = {
     "evaluation",
     "mechanism",
     "simulation",
+    "classification",
+    "statistics",
     "hybrid",
 }
 _EXECUTION_MODES = {"research_autonomous", "competition_assisted", "competition_max"}

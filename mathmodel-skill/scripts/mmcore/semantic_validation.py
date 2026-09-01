@@ -23,6 +23,8 @@ _DEFAULT_REQUIREMENTS = {
     "evaluation": ("indicator_direction", "normalization", "weight_provenance", "ranking_stability"),
     "simulation": ("seed", "replications", "convergence", "uncertainty_interval"),
     "mechanism": ("units", "boundary_behavior", "parameter_plausibility", "calibration"),
+    "classification": ("stratified_split", "leakage_check", "baseline", "metric_recomputation"),
+    "statistics": ("sample_assumptions", "uncertainty_interval", "baseline", "metric_recomputation"),
 }
 
 
