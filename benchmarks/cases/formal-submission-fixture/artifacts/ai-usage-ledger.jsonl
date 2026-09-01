@@ -1,0 +1,1 @@
+{"id":"AI-001","timestamp":"2026-09-01T00:00:00+00:00","agent_role":"fixture","model_name":"fixture","model_version":"1","purpose":"test","stage":"test","prompt_summary":"test","prompt_hash":"fixture-hash","output_artifacts":["paper/main.tex"],"accepted":true,"human_modified":true,"human_verified":true,"human_review_id":"H4-001"}

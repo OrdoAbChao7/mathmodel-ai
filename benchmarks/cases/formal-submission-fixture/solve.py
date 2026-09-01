@@ -1,0 +1,1 @@
+print("deterministic formal fixture")

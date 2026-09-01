@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "project_id": "formal-fixture-001",
+  "title": "Formal submission readiness fixture",
+  "contest": "CUMCM",
+  "problem_type": "optimization",
+  "execution_mode": "competition_assisted",
+  "inputs": {"statements": ["problem/statement.txt"], "attachments": ["data/input.csv"]},
+  "commands": {"solver": ["python", "solve.py"], "analyze": ["python", "solve.py"]},
+  "paper": {"main": "paper/main.tex", "engine": "xelatex", "jobname": "fixture"},
+  "quality": {"target_total_pages": [1, 10], "target_body_pages": [1, 10], "max_appendix_body_ratio": 1, "minimum_score": 0, "minimum_figures": 0, "required_figure_roles": []}
+}
