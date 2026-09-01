@@ -80,6 +80,17 @@ class ReleaseAuditTests(unittest.TestCase):
         self.assertEqual(result["status"], "BLOCKED")
         self.assertTrue(any(check["rule"] == "PACKAGE-COMPLIANCE-001" for check in result["checks"]))
 
+    def test_formal_package_refuses_missing_g1(self):
+        report = dict(self.report)
+        report.pop("compliance", None)
+        report.pop("g1", None)
+        config = json.loads((self.root / "mathmodel.json").read_text(encoding="utf-8"))
+        config["execution_mode"] = "competition_assisted"
+        (self.root / "mathmodel.json").write_text(json.dumps(config), encoding="utf-8")
+        result = package(self.root, report)
+        self.assertEqual(result["status"], "BLOCKED")
+        self.assertTrue(any(check["rule"] == "PACKAGE-INTERPRETATION-001" for check in result["checks"]))
+
     def test_clean_package_has_unique_page_hash_name_and_manifest(self):
         result = package(self.root, self.report)
         self.assertEqual(result["status"], "PASS", result)

@@ -11,6 +11,7 @@ from mmcore.analysis import collect_outputs, run_analysis
 from mmcore.authority import accept_external_status, load_json, validate_registry
 from mmcore.config import ConfigError, load_config
 from mmcore.compliance import evaluate_compliance
+from mmcore.interpretation import evaluate_g1
 from mmcore.contracts import REQUIRED_ARTIFACTS, validate_artifacts
 from mmcore.manifest import inventory_project, new_run, update_stage, sha256_file
 from mmcore.latex import compile_latex, find_latex_placeholders
@@ -29,6 +30,7 @@ def _write_quality_reports(
     page_gates: list[dict] | None = None,
     compile_result: dict | None = None,
     compliance: dict | None = None,
+    g1: dict | None = None,
 ) -> tuple[Path, Path, dict]:
     build = project / "build"
     build.mkdir(parents=True, exist_ok=True)
@@ -41,6 +43,7 @@ def _write_quality_reports(
         "page_metrics": page_metrics,
         "page_gates": page_gates,
         "compliance": compliance or {"status": "NOT_APPLICABLE", "mode": "research_autonomous", "checks": []},
+        "g1": g1 or {"status": "NOT_APPLICABLE", "gate": "G1_PROBLEM_UNDERSTANDING_LOCKED", "checks": []},
     }
     # Persist the evidence objects consumed by the strict release packager.
     # They are generated from the same contract and inventory used for this
@@ -117,6 +120,7 @@ def _write_quality_reports(
         f"- Page metrics: {page_metrics['status']}",
         f"- Page gate failures: {sum(1 for gate in page_gates if gate['severity'] == 'FAIL' and gate['status'] == 'FAIL')}",
         f"- CUMCM compliance: {report['compliance']['status']}",
+        f"- G1 interpretation: {report['g1']['status']}",
         "",
         "## Dimensions",
         "",
@@ -144,6 +148,19 @@ def _compliance_gate(compliance: dict) -> dict:
             "CUMCM compliance is not applicable for research mode" if status == "NOT_APPLICABLE" else "CUMCM compliance evidence is incomplete or invalid"
         ),
         "evidence": {"status": status, "mode": compliance.get("mode"), "missing_human_gates": compliance.get("missing_human_gates", [])},
+    }
+
+
+def _g1_gate(g1: dict) -> dict:
+    status = g1.get("status")
+    return {
+        "rule": "G1-PROBLEM-INTERPRETATION-001",
+        "severity": "FAIL",
+        "status": "PASS" if status in {"PASS", "NOT_APPLICABLE"} else "FAIL",
+        "message": "problem interpretation is locked" if status == "PASS" else (
+            "problem interpretation gate is not applicable for research mode" if status == "NOT_APPLICABLE" else "problem interpretation is not locked"
+        ),
+        "evidence": {"status": status, "gate": g1.get("gate"), "conflicts": g1.get("conflicts", []), "missing_artifacts": g1.get("missing_artifacts", [])},
     }
 
 
@@ -376,9 +393,11 @@ def main(argv: list[str] | None = None) -> int:
         page_gates = evaluate_page_gates(page_metrics, {"profile": cfg["quality"], "score": quality})
         compliance = evaluate_compliance(project, cfg)
         page_gates.append(_compliance_gate(compliance))
+        g1 = evaluate_g1(project, cfg)
+        page_gates.append(_g1_gate(g1))
         _, source_gates = _source_gates(project, cfg)
         page_gates.extend(source_gates)
-        report_path, summary_path, _ = _write_quality_reports(project, contract, quality, page_metrics, page_gates, compliance=compliance)
+        report_path, summary_path, _ = _write_quality_reports(project, contract, quality, page_metrics, page_gates, compliance=compliance, g1=g1)
         release_status = _release_status(contract, page_gates)
         result = {
             "report": str(report_path),
@@ -389,6 +408,7 @@ def main(argv: list[str] | None = None) -> int:
             "page_metrics": page_metrics,
             "page_gates": page_gates,
             "compliance": compliance,
+            "g1": g1,
         }
         if args.json:
             print(json.dumps(result, ensure_ascii=False))
@@ -482,9 +502,11 @@ def main(argv: list[str] | None = None) -> int:
         page_gates = evaluate_page_gates(page_metrics, {"profile": cfg["quality"], "score": quality})
         compliance = evaluate_compliance(project, cfg)
         page_gates.append(_compliance_gate(compliance))
+        g1 = evaluate_g1(project, cfg)
+        page_gates.append(_g1_gate(g1))
         page_gates.extend(source_gates)
         report_path, summary_path, _ = _write_quality_reports(
-            project, contract, quality, page_metrics, page_gates, compile_result, compliance
+            project, contract, quality, page_metrics, page_gates, compile_result, compliance, g1
         )
         release_status = _release_status(contract, page_gates, compile_result)
         if solver["status"] == "FAILED" or analysis["status"] == "FAILED":
@@ -507,6 +529,7 @@ def main(argv: list[str] | None = None) -> int:
             "page_metrics": page_metrics,
             "page_gates": page_gates,
             "compliance": compliance,
+            "g1": g1,
         }
         if args.json:
             print(json.dumps(result, ensure_ascii=False))
