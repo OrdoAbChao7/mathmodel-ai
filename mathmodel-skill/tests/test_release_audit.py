@@ -115,6 +115,18 @@ class ReleaseAuditTests(unittest.TestCase):
         self.assertEqual(result["status"], "BLOCKED")
         self.assertTrue(any(check["rule"] == "PACKAGE-MODEL-TOURNAMENT-001" for check in result["checks"]))
 
+    def test_formal_package_refuses_missing_semantic_validation(self):
+        report = dict(self.report)
+        report["compliance"] = {"status": "PASS"}
+        report["g1"] = {"status": "PASS"}
+        report["model_tournament"] = {"g2": {"status": "PASS"}, "g3": {"status": "PASS"}}
+        config = json.loads((self.root / "mathmodel.json").read_text(encoding="utf-8"))
+        config["execution_mode"] = "competition_assisted"
+        (self.root / "mathmodel.json").write_text(json.dumps(config), encoding="utf-8")
+        result = package(self.root, report)
+        self.assertEqual(result["status"], "BLOCKED")
+        self.assertTrue(any(check["rule"] == "PACKAGE-VALIDATION-001" for check in result["checks"]))
+
     def test_clean_package_has_unique_page_hash_name_and_manifest(self):
         result = package(self.root, self.report)
         self.assertEqual(result["status"], "PASS", result)

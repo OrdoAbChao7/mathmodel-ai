@@ -13,6 +13,7 @@ from mmcore.config import ConfigError, load_config
 from mmcore.compliance import evaluate_compliance
 from mmcore.interpretation import evaluate_g1
 from mmcore.model_tournament import evaluate_model_tournament
+from mmcore.semantic_validation import evaluate_semantic_validation
 from mmcore.contracts import REQUIRED_ARTIFACTS, validate_artifacts
 from mmcore.manifest import inventory_project, new_run, update_stage, sha256_file
 from mmcore.latex import compile_latex, find_latex_placeholders
@@ -33,6 +34,7 @@ def _write_quality_reports(
     compliance: dict | None = None,
     g1: dict | None = None,
     model_tournament: dict | None = None,
+    semantic_validation: dict | None = None,
 ) -> tuple[Path, Path, dict]:
     build = project / "build"
     build.mkdir(parents=True, exist_ok=True)
@@ -47,6 +49,7 @@ def _write_quality_reports(
         "compliance": compliance or {"status": "NOT_APPLICABLE", "mode": "research_autonomous", "checks": []},
         "g1": g1 or {"status": "NOT_APPLICABLE", "gate": "G1_PROBLEM_UNDERSTANDING_LOCKED", "checks": []},
         "model_tournament": model_tournament or {"status": "NOT_APPLICABLE", "g2": {"status": "NOT_APPLICABLE", "checks": []}, "g3": {"status": "NOT_APPLICABLE", "checks": []}},
+        "semantic_validation": semantic_validation or {"status": "NOT_APPLICABLE", "g4": {"status": "NOT_APPLICABLE", "checks": []}, "g5": {"status": "NOT_APPLICABLE", "checks": []}},
     }
     # Persist the evidence objects consumed by the strict release packager.
     # They are generated from the same contract and inventory used for this
@@ -125,6 +128,7 @@ def _write_quality_reports(
         f"- CUMCM compliance: {report['compliance']['status']}",
         f"- G1 interpretation: {report['g1']['status']}",
         f"- G2/G3 model tournament: {report['model_tournament']['status']}",
+        f"- G4/G5 semantic validation: {report['semantic_validation']['status']}",
         "",
         "## Dimensions",
         "",
@@ -176,6 +180,18 @@ def _model_gate(model_tournament: dict, key: str, rule: str, title: str) -> dict
         "status": "PASS" if status in {"PASS", "NOT_APPLICABLE"} else "FAIL",
         "message": title if status == "PASS" else (f"{title} is not applicable for research mode" if status == "NOT_APPLICABLE" else f"{title} is not satisfied"),
         "evidence": {"status": status, "checks": model_tournament.get(key, {}).get("checks", []) if isinstance(model_tournament.get(key), dict) else []},
+    }
+
+
+def _semantic_gate(semantic_validation: dict, key: str, rule: str, title: str) -> dict:
+    detail = semantic_validation.get(key) if isinstance(semantic_validation.get(key), dict) else {}
+    status = detail.get("status")
+    return {
+        "rule": rule,
+        "severity": "FAIL",
+        "status": "PASS" if status in {"PASS", "NOT_APPLICABLE"} else "FAIL",
+        "message": title if status == "PASS" else (f"{title} is not applicable for research mode" if status == "NOT_APPLICABLE" else f"{title} is not satisfied"),
+        "evidence": {"status": status, "checks": detail.get("checks", [])},
     }
 
 
@@ -413,9 +429,12 @@ def main(argv: list[str] | None = None) -> int:
         model_tournament = evaluate_model_tournament(project, cfg)
         page_gates.append(_model_gate(model_tournament, "g2", "G2-MODEL-SEARCH-001", "model search is complete"))
         page_gates.append(_model_gate(model_tournament, "g3", "G3-MODEL-SELECTION-001", "model selection is justified"))
+        semantic_validation = evaluate_semantic_validation(project, cfg)
+        page_gates.append(_semantic_gate(semantic_validation, "g4", "G4-SEMANTIC-VALIDATION-001", "semantic validation is complete"))
+        page_gates.append(_semantic_gate(semantic_validation, "g5", "G5-FALSIFICATION-001", "falsification is passed"))
         _, source_gates = _source_gates(project, cfg)
         page_gates.extend(source_gates)
-        report_path, summary_path, _ = _write_quality_reports(project, contract, quality, page_metrics, page_gates, compliance=compliance, g1=g1, model_tournament=model_tournament)
+        report_path, summary_path, _ = _write_quality_reports(project, contract, quality, page_metrics, page_gates, compliance=compliance, g1=g1, model_tournament=model_tournament, semantic_validation=semantic_validation)
         release_status = _release_status(contract, page_gates)
         result = {
             "report": str(report_path),
@@ -428,6 +447,7 @@ def main(argv: list[str] | None = None) -> int:
             "compliance": compliance,
             "g1": g1,
             "model_tournament": model_tournament,
+            "semantic_validation": semantic_validation,
         }
         if args.json:
             print(json.dumps(result, ensure_ascii=False))
@@ -526,9 +546,12 @@ def main(argv: list[str] | None = None) -> int:
         model_tournament = evaluate_model_tournament(project, cfg)
         page_gates.append(_model_gate(model_tournament, "g2", "G2-MODEL-SEARCH-001", "model search is complete"))
         page_gates.append(_model_gate(model_tournament, "g3", "G3-MODEL-SELECTION-001", "model selection is justified"))
+        semantic_validation = evaluate_semantic_validation(project, cfg)
+        page_gates.append(_semantic_gate(semantic_validation, "g4", "G4-SEMANTIC-VALIDATION-001", "semantic validation is complete"))
+        page_gates.append(_semantic_gate(semantic_validation, "g5", "G5-FALSIFICATION-001", "falsification is passed"))
         page_gates.extend(source_gates)
         report_path, summary_path, _ = _write_quality_reports(
-            project, contract, quality, page_metrics, page_gates, compile_result, compliance, g1, model_tournament
+            project, contract, quality, page_metrics, page_gates, compile_result, compliance, g1, model_tournament, semantic_validation
         )
         release_status = _release_status(contract, page_gates, compile_result)
         if solver["status"] == "FAILED" or analysis["status"] == "FAILED":
@@ -553,6 +576,7 @@ def main(argv: list[str] | None = None) -> int:
             "compliance": compliance,
             "g1": g1,
             "model_tournament": model_tournament,
+            "semantic_validation": semantic_validation,
         }
         if args.json:
             print(json.dumps(result, ensure_ascii=False))
