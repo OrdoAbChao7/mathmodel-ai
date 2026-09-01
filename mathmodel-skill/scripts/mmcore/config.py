@@ -77,6 +77,23 @@ def _validate_relative_paths(config: dict[str, Any], project: Path) -> None:
     resolve_project_path(project, main)
 
 
+def _validate_benchmark(config: dict[str, Any]) -> None:
+    benchmark = config.get("benchmark")
+    if benchmark is None:
+        return
+    benchmark = _require_mapping(benchmark, "benchmark")
+    for field in ("baseline_command", "candidate_command"):
+        command = benchmark.get(field)
+        if not isinstance(command, list) or not command or any(not isinstance(item, str) or not item for item in command):
+            raise ConfigError(f"benchmark.{field} must be a non-empty array of strings")
+    repeats = benchmark.get("repeats", 1)
+    if isinstance(repeats, bool) or not isinstance(repeats, int) or not 1 <= repeats <= 20:
+        raise ConfigError("benchmark.repeats must be an integer in [1, 20]")
+    timeout = benchmark.get("timeout_seconds", 300)
+    if isinstance(timeout, bool) or not isinstance(timeout, int) or not 1 <= timeout <= 3600:
+        raise ConfigError("benchmark.timeout_seconds must be an integer in [1, 3600]")
+
+
 def load_config(project: Path) -> dict[str, Any]:
     """Load and validate UTF-8 ``mathmodel.json`` without modifying it."""
     project = Path(project).resolve()
@@ -116,6 +133,7 @@ def load_config(project: Path) -> dict[str, Any]:
     analyze = commands.get("analyze")
     if not isinstance(analyze, list) or any(not isinstance(item, str) for item in analyze):
         raise ConfigError("commands.analyze must be an array of strings")
+    _validate_benchmark(config)
 
     paper = _require_mapping(config["paper"], "paper")
     for field in ("main", "engine", "jobname"):

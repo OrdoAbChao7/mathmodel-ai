@@ -65,6 +65,30 @@ class ConfigTests(unittest.TestCase):
         write_json(self.root / "mathmodel.json", cfg)
         self.assertEqual(load_config(self.root)["schema_version"], 2)
 
+    def test_load_config_validates_optional_benchmark_contract(self):
+        cfg = valid_config()
+        cfg["benchmark"] = {
+            "baseline_command": ["python", "baseline.py"],
+            "candidate_command": ["python", "candidate.py"],
+            "repeats": 3,
+            "timeout_seconds": 120,
+        }
+        write_json(self.root / "mathmodel.json", cfg)
+        self.assertEqual(load_config(self.root)["benchmark"]["repeats"], 3)
+
+    def test_load_config_rejects_invalid_benchmark_contract(self):
+        for benchmark in (
+            {"baseline_command": [], "candidate_command": ["python", "candidate.py"]},
+            {"baseline_command": ["python", "baseline.py"], "candidate_command": ["python", "candidate.py"], "repeats": 0},
+            {"baseline_command": ["python", "baseline.py"], "candidate_command": ["python", "candidate.py"], "timeout_seconds": 0},
+        ):
+            with self.subTest(benchmark=benchmark):
+                cfg = valid_config()
+                cfg["benchmark"] = benchmark
+                write_json(self.root / "mathmodel.json", cfg)
+                with self.assertRaises(ConfigError):
+                    load_config(self.root)
+
     def test_load_config_accepts_classification_and_statistics_profiles(self):
         for problem_type in ("classification", "statistics"):
             with self.subTest(problem_type=problem_type):
@@ -139,7 +163,11 @@ class ConfigTests(unittest.TestCase):
 
     def test_benchmark_command_routes_to_harness_and_writes_report(self):
         config = valid_config()
-        config["benchmark"] = {"repeats": 2}
+        config["benchmark"] = {
+            "baseline_command": ["python", "baseline.py"],
+            "candidate_command": ["python", "candidate.py"],
+            "repeats": 2,
+        }
         write_json(self.root / "mathmodel.json", config)
         output = StringIO()
         report = {"status": "PASS", "promotion": {"status": "OPTIONAL"}}
