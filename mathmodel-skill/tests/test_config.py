@@ -176,6 +176,19 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(json.loads(output.getvalue())["report_path"], str(self.root / "report.json"))
         self.assertEqual(benchmark.call_args.kwargs["repeats"], 2)
 
+    def test_benchmark_cli_repeats_override_configuration(self):
+        config = valid_config()
+        config["benchmark"] = {
+            "baseline_command": ["python", "baseline.py"],
+            "candidate_command": ["python", "candidate.py"],
+            "repeats": 2,
+        }
+        write_json(self.root / "mathmodel.json", config)
+        report = {"status": "PASS", "promotion": {"status": "OPTIONAL"}}
+        with patch("mathmodel.load_case_registry", return_value={"schema_version": 1, "cases": []}), patch("mathmodel.run_configured_benchmark", return_value=report) as benchmark, patch("mathmodel.write_benchmark_report", return_value=str(self.root / "report.json")):
+            self.assertEqual(main(["benchmark", str(self.root), "--repeats", "4", "--json"]), 0)
+        self.assertEqual(benchmark.call_args.kwargs["repeats"], 4)
+
     def test_submission_command_routes_to_g9_evaluator(self):
         write_json(self.root / "mathmodel.json", valid_config())
         output = StringIO()
