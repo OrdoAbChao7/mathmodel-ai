@@ -95,6 +95,17 @@ class ComplianceTests(unittest.TestCase):
         self.assertEqual(report["status"], "FAIL")
         self.assertTrue(any(check["rule"] == "G0-AI-INTEGRITY-001" for check in report["checks"]))
 
+    def test_ai_and_human_ledger_ids_must_be_unique_nonempty_strings(self):
+        ai, human = valid_rows()
+        ai["id"] = ""
+        human[1]["id"] = human[0]["id"]
+        write_jsonl(self.root / "artifacts" / "ai-usage-ledger.jsonl", [ai])
+        write_jsonl(self.root / "artifacts" / "human-review-ledger.jsonl", human)
+        report = evaluate_compliance(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertTrue(any(check["rule"] == "G0-AI-INTEGRITY-001" for check in report["checks"]))
+        self.assertTrue(any(check["rule"] == "G0-HUMAN-INTEGRITY-001" for check in report["checks"]))
+
     def test_research_mode_is_not_applicable(self):
         report = evaluate_compliance(self.root, {"contest": "CUMCM", "execution_mode": "research_autonomous"})
         self.assertEqual(report["status"], "NOT_APPLICABLE")

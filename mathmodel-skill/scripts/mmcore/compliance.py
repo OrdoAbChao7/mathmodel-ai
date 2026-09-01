@@ -92,12 +92,17 @@ def _safe_project_file(project: Path, value: Any) -> Path | None:
 
 def _ai_checks(project: Path, rows: list[dict[str, Any]], errors: list[str], patterns: list[str]) -> list[dict[str, Any]]:
     checks: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
     if errors:
         checks.append(_check("G0-AI-JSONL-001", "FAIL", "AI usage ledger has malformed records", errors=errors))
     if not rows:
         checks.append(_check("G0-AI-LEDGER-001", "FAIL", "AI usage ledger has no usable records"))
     for row in rows:
         missing = [field for field in _AI_REQUIRED if field not in row]
+        identifier = row.get("id")
+        duplicate_or_invalid_id = not _text(identifier) or identifier in seen_ids
+        if _text(identifier):
+            seen_ids.add(identifier)
         if missing:
             checks.append(_check("G0-AI-SHAPE-001", "FAIL", "AI usage record is missing required fields", id=row.get("id"), missing=missing))
             continue
@@ -107,7 +112,7 @@ def _ai_checks(project: Path, rows: list[dict[str, Any]], errors: list[str], pat
                        and all(_safe_project_file(project, item) is not None for item in row["output_artifacts"]))
         valid_flags = all(isinstance(row[field], bool) for field in ("accepted", "human_modified", "human_verified"))
         verified = row["human_verified"] is True and (_text(row.get("human_review_id")) if row["accepted"] is True else True)
-        if sensitive or not valid_lists or not valid_flags or not verified or not _text(row["prompt_hash"]):
+        if sensitive or not valid_lists or not valid_flags or not verified or not _text(row["prompt_hash"]) or duplicate_or_invalid_id:
             checks.append(_check("G0-AI-INTEGRITY-001", "FAIL", "AI usage record fails integrity requirements", id=row.get("id"), sensitive=sensitive, verified=verified, valid_outputs=valid_lists, valid_flags=valid_flags))
     if rows and not any(check["status"] == "FAIL" for check in checks):
         checks.append(_check("G0-AI-LEDGER-001", "PASS", "AI usage ledger is valid", records=len(rows)))
@@ -136,18 +141,25 @@ def _reviewed_artifacts(project: Path, values: Any) -> tuple[bool, list[str]]:
 def _human_checks(project: Path, rows: list[dict[str, Any]], errors: list[str], gates: tuple[str, ...], max_age_days: int) -> tuple[list[dict[str, Any]], list[str]]:
     checks: list[dict[str, Any]] = []
     seen: set[str] = set()
+    seen_ids: set[str] = set()
     for row in rows:
         missing = [field for field in _HUMAN_REQUIRED if field not in row]
         gate = row.get("gate")
+        identifier = row.get("id")
+        duplicate_or_invalid_id = not _text(identifier) or identifier in seen_ids
+        if _text(identifier):
+            seen_ids.add(identifier)
         if missing:
             checks.append(_check("G0-HUMAN-SHAPE-001", "FAIL", "human review record is missing required fields", id=row.get("id"), missing=missing))
             continue
-        seen.add(gate)
+        if isinstance(gate, str):
+            seen.add(gate)
         artifacts_ok, invalid_artifacts = _reviewed_artifacts(project, row["reviewed_artifacts"])
         valid = (
             gate in gates and artifacts_ok
             and _text(row["reviewer_name"]) and _text(row["reviewer_role"]) and _text(row["evidence_notes"])
             and row["decision"] == "APPROVED" and _timestamp_ok(row["timestamp"], max_age_days)
+            and not duplicate_or_invalid_id
         )
         if not valid:
             checks.append(_check("G0-HUMAN-INTEGRITY-001", "FAIL", "human review record is not an accepted current signoff", id=row.get("id"), gate=gate, invalid_reviewed_artifacts=invalid_artifacts))
