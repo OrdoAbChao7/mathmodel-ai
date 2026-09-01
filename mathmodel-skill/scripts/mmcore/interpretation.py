@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .schema import supported_artifact_schema
+
 import yaml
 
 _CANDIDATE_FIELDS = (
@@ -138,7 +140,7 @@ def _conflict_checks(project: Path, computed: list[dict[str, Any]], candidate_id
     if not isinstance(supplied, list):
         return [_check("G1-CONFLICT-EVIDENCE-001", "UNASSESSED", "conflict artifact must contain a conflicts array")], None
     metadata_valid = (
-        data.get("schema_version") == 1
+        supported_artifact_schema(data)
         and isinstance(data.get("generated_by"), str) and bool(data["generated_by"].strip())
         and isinstance(data.get("candidate_ids"), list)
         and all(isinstance(item, str) and bool(item.strip()) for item in data.get("candidate_ids", []))
@@ -209,7 +211,7 @@ def evaluate_g1(project: Path, config: dict[str, Any]) -> dict[str, Any]:
         candidates = {}
     else:
         candidates = candidates_data or {}
-        if candidates.get("schema_version") != 1 or not isinstance(candidates.get("problem_id"), str) or not candidates["problem_id"].strip():
+        if not supported_artifact_schema(candidates) or not isinstance(candidates.get("problem_id"), str) or not candidates["problem_id"].strip():
             checks.append(_check("G1-ARTIFACT-METADATA-001", "FAIL", "interpretation candidate metadata is missing or invalid"))
     candidate_checks, valid_candidates = _candidate_checks(candidates, int(profile.get("minimum_independent_interpretations", 2)))
     checks.extend(candidate_checks)

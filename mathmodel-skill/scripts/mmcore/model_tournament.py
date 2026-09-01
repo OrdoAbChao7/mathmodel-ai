@@ -8,6 +8,8 @@ from typing import Any
 
 import yaml
 
+from .schema import supported_artifact_schema
+
 _CANDIDATE_REQUIRED = (
     "id", "question_id", "role", "conceptual_family", "assumption_family",
     "optimization_or_inference_structure", "method_card_id", "simpler_alternative",
@@ -91,7 +93,7 @@ def _load_candidates(project: Path) -> tuple[list[dict[str, Any]], list[dict[str
     data, error = _read_json(project / "artifacts" / "candidate-registry.json")
     if error:
         return [], [_check("G2-CANDIDATE-EVIDENCE-001", "UNASSESSED", "candidate registry is unavailable", error=error)], []
-    if data.get("schema_version") != 1 or not _text(data.get("problem_id")):
+    if not supported_artifact_schema(data) or not _text(data.get("problem_id")):
         checks.append(_check("G2-ARTIFACT-METADATA-001", "FAIL", "candidate registry metadata is missing or invalid"))
     raw = data.get("candidates")
     if not isinstance(raw, list):
@@ -117,7 +119,7 @@ def _load_cards(project: Path, candidates: list[dict[str, Any]]) -> list[dict[st
     data, error = _read_json(project / "artifacts" / "method-cards.json")
     if error:
         return [_check("G2-METHOD-CARD-EVIDENCE-001", "UNASSESSED", "method-card registry is unavailable", error=error)]
-    if data.get("schema_version") != 1:
+    if not supported_artifact_schema(data):
         checks.append(_check("G2-ARTIFACT-METADATA-001", "FAIL", "method-card metadata is missing or invalid"))
     raw = data.get("cards")
     if not isinstance(raw, list):
@@ -148,7 +150,7 @@ def _risk_checks(project: Path, candidates: list[dict[str, Any]], fields: tuple[
     data, error = _read_json(project / "artifacts" / "risk-probe.json")
     if error:
         return [_check("G2-RISK-EVIDENCE-001", "UNASSESSED", "risk-probe evidence is unavailable", error=error)]
-    if data.get("schema_version") != 1 or not _text(data.get("generated_by")):
+    if not supported_artifact_schema(data) or not _text(data.get("generated_by")):
         checks.append(_check("G2-ARTIFACT-METADATA-001", "FAIL", "risk-probe metadata is missing or invalid"))
     raw = data.get("probes")
     if not isinstance(raw, list):

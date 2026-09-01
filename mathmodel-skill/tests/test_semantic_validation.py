@@ -70,6 +70,15 @@ class SemanticValidationTests(unittest.TestCase):
         self.assertEqual(report["g4"]["status"], "PASS", report)
         self.assertEqual(report["g5"]["status"], "PASS", report)
 
+    def test_v2_validation_and_falsification_artifacts_are_accepted(self):
+        self.install_valid()
+        for name in ("validation.json", "falsification.json"):
+            data = json.loads((self.root / "artifacts" / name).read_text(encoding="utf-8"))
+            data["schema_version"] = 2
+            write_json(self.root, f"artifacts/{name}", data)
+        report = evaluate_semantic_validation(self.root, self.cfg)
+        self.assertEqual(report["status"], "PASS", report)
+
     def test_observed_threshold_violation_fails_even_when_claimed_pass(self):
         self.install_valid(observed=9.2, claimed_status="PASS")
         report = evaluate_semantic_validation(self.root, self.cfg)

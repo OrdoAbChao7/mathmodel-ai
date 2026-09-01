@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .schema import supported_artifact_schema
+
 
 _FORMAL_MODES = {"competition_assisted", "competition_max"}
 _STRONG_TERMS = ("最优", "显著", "准确", "稳定", "鲁棒", "优于", "提升", "有效", "最佳", "可靠", "optimal", "significant", "robust")
@@ -71,8 +73,8 @@ def evaluate_writer_package(project: Path, config: dict[str, Any]) -> dict[str, 
     package, package_error = _read_json(root / "artifacts" / "writer-package.json")
     if package_error:
         return {"status": "FAIL", "mode": mode, "checks": [_check("G7-EVIDENCE-001", "FAIL", "writer-package.json is required", error=package_error)]}
-    if package.get("schema_version") != 1:
-        checks.append(_check("G7-SHAPE-001", "FAIL", "writer-package schema_version must be 1"))
+    if not supported_artifact_schema(package):
+        checks.append(_check("G7-SHAPE-001", "FAIL", "writer-package schema_version is unsupported"))
     source_artifacts = package.get("source_artifacts")
     required_sources = {"artifacts/problem-map.json", "artifacts/model-architecture.json", "artifacts/frozen-results.json", "artifacts/claim-registry.json", "artifacts/figure-registry.json", "artifacts/decision-ledger.json"}
     source_set = {item for item in source_artifacts if isinstance(item, str)} if isinstance(source_artifacts, list) else set()
@@ -152,8 +154,8 @@ def evaluate_review_registry(project: Path, config: dict[str, Any]) -> dict[str,
     registry, error = _read_json(root / "artifacts" / "review-registry.json")
     reviews, valid = _items(registry, "reviews")
     checks: list[dict[str, Any]] = []
-    if not error and registry.get("schema_version") != 1:
-        checks.append(_check("G8-SHAPE-001", "FAIL", "review-registry schema_version must be 1"))
+    if not error and not supported_artifact_schema(registry):
+        checks.append(_check("G8-SHAPE-001", "FAIL", "review-registry schema_version is unsupported"))
     types = {item.get("reviewer_type") for item in reviews if isinstance(item.get("reviewer_type"), str)}
     review_ids = [item.get("id") for item in reviews]
     reviewer_ids = [item.get("reviewer_id") for item in reviews]

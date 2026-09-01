@@ -155,6 +155,20 @@ class ConfigTests(unittest.TestCase):
             self.assertIn(payload["status"], {"PASS", "FAIL", "PENDING"}, payload)
             self.assertIn(exit_code, {0, 1})
 
+    def test_migrate_command_supports_dry_run_and_explicit_upgrade(self):
+        write_json(self.root / "mathmodel.json", valid_config())
+        (self.root / "artifacts").mkdir()
+        artifact = self.root / "artifacts/example.json"
+        artifact.write_text(json.dumps({"schema_version": 1, "items": []}), encoding="utf-8")
+        output = StringIO()
+        with redirect_stdout(output):
+            self.assertEqual(main(["migrate", str(self.root), "--dry-run", "--json"]), 0)
+        self.assertEqual(json.loads(artifact.read_text(encoding="utf-8"))["schema_version"], 1)
+        output = StringIO()
+        with redirect_stdout(output):
+            self.assertEqual(main(["migrate", str(self.root), "--json"]), 0)
+        self.assertEqual(json.loads(artifact.read_text(encoding="utf-8"))["schema_version"], 2)
+
     def test_authority_command_reports_local_constitution(self):
         (self.root / "CONSTITUTION.md").write_text("local authority", encoding="utf-8")
         output = StringIO()

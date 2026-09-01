@@ -28,6 +28,7 @@ from mmcore.pdfmetrics import evaluate_page_gates, measure_pdf
 from mmcore.package import package as package_project
 from mmcore.quality import score_quality
 from mmcore.scaffold import adopt_project, init_project
+from mmcore.schema import migrate_artifacts
 from mmcore.runner import run_solver
 
 
@@ -501,6 +502,10 @@ def main(argv: list[str] | None = None) -> int:
     authority_parser = subparsers.add_parser("authority")
     authority_parser.add_argument("project")
     authority_parser.add_argument("--json", action="store_true")
+    migrate_parser = subparsers.add_parser("migrate")
+    migrate_parser.add_argument("project")
+    migrate_parser.add_argument("--dry-run", action="store_true")
+    migrate_parser.add_argument("--json", action="store_true")
     for stage in ("frame", "screen", "select", "validate", "freeze", "review", "signoff", "compliance"):
         stage_parser = subparsers.add_parser(stage)
         stage_parser.add_argument("project")
@@ -519,6 +524,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "adopt":
         adopt_project(args.target)
         return 0
+    if args.command == "migrate":
+        try:
+            result = migrate_artifacts(Path(args.project), dry_run=args.dry_run)
+        except (OSError, TypeError, ValueError) as exc:
+            result = {"status": "FAIL", "errors": [str(exc)]}
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False))
+        else:
+            print(f"migrate: {result['status']} ({args.project})")
+        return 0 if result["status"] == "PASS" else 1
     if args.command == "inspect":
         project = Path(args.project).resolve()
         cfg = load_config(project)

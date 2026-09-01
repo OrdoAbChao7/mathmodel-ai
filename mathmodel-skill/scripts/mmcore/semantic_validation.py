@@ -11,6 +11,7 @@ from typing import Any, Callable
 import yaml
 
 from .experiment import evaluate_experiment_provenance
+from .schema import supported_artifact_schema
 
 _OPERATORS: dict[str, Callable[[float, float], bool]] = {
     "<": operator.lt, "<=": operator.le, ">": operator.gt,
@@ -189,8 +190,8 @@ def evaluate_semantic_validation(project: Path, config: dict[str, Any]) -> dict[
         g4_checks.append(_check("G4-VALIDATION-EVIDENCE-001", "UNASSESSED", "validation artifact is unavailable", error=validation_error))
         validation_ids = []
     else:
-        if validation_data.get("schema_version") != 1:
-            g4_checks.append(_check("G4-ARTIFACT-METADATA-001", "FAIL", "validation artifact schema_version must be 1"))
+        if not supported_artifact_schema(validation_data):
+            g4_checks.append(_check("G4-ARTIFACT-METADATA-001", "FAIL", "validation artifact schema_version is unsupported"))
         requirements = tuple(validation_requirements.get(problem_type, _DEFAULT_REQUIREMENTS.get(problem_type, ())))
         validation_checks, validation_ids = _validation_checks(Path(project), validation_data, requirements)
         g4_checks.extend(validation_checks)
@@ -206,7 +207,7 @@ def evaluate_semantic_validation(project: Path, config: dict[str, Any]) -> dict[
     if falsification_error:
         g5_checks.append(_check("G5-FALSIFICATION-EVIDENCE-001", "UNASSESSED", "falsification artifact is unavailable", error=falsification_error))
     else:
-        if falsification_data.get("schema_version") != 1 or not _text(falsification_data.get("generated_by")):
+        if not supported_artifact_schema(falsification_data) or not _text(falsification_data.get("generated_by")):
             g5_checks.append(_check("G5-ARTIFACT-METADATA-001", "FAIL", "falsification artifact metadata is missing or invalid"))
         g5_checks.extend(_falsification_checks(Path(project), falsification_data, validation_ids))
     g5_status = "PASS" if g4_status == "PASS" and g5_checks and all(check["status"] == "PASS" for check in g5_checks) else "FAIL"
