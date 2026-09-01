@@ -10,7 +10,8 @@ from typing import Any
 _FORMAL_MODES = {"competition_assisted", "competition_max"}
 _STRONG_TERMS = ("最优", "显著", "准确", "稳定", "鲁棒", "优于", "提升", "有效", "最佳", "可靠", "optimal", "significant", "robust")
 _COMPARISON_TERMS = ("优于", "提升", "improve", "better", "superior")
-_REVIEW_TYPES = ("mathematical", "statistical", "evidence_consistency", "red_team", "citation", "judge_view", "final_judge")
+_REVIEW_TYPES = ("mathematical", "statistical", "evidence_consistency", "innovation", "red_team", "citation", "judge_view", "final_judge")
+_INNOVATION_FIELDS = ("problem_need", "counterfactual_value", "problem_origin", "empirical_support", "non_mechanical")
 _JUDGE_ANSWERS = ("problem", "method", "innovation", "result", "trust", "risk")
 
 
@@ -161,6 +162,16 @@ def evaluate_review_registry(project: Path, config: dict[str, Any]) -> dict[str,
         checks.append(_check("G8-COVERAGE-001", "FAIL", "all independent reviewer types must complete", missing=sorted(set(_REVIEW_TYPES) - types)))
     else:
         checks.append(_check("G8-COVERAGE-001", "PASS", "all independent reviewer types completed"))
+    innovation_reviews = [review for review in reviews if review.get("reviewer_type") == "innovation"]
+    innovation_ok = bool(innovation_reviews) and all(
+        isinstance(review.get("innovation_assessment"), dict)
+        and all(isinstance(review["innovation_assessment"].get(field), str) and review["innovation_assessment"].get(field).strip() for field in _INNOVATION_FIELDS)
+        and isinstance(review["innovation_assessment"].get("evidence_refs"), list)
+        and bool(review["innovation_assessment"]["evidence_refs"])
+        and all(isinstance(ref, str) and ref.strip() for ref in review["innovation_assessment"]["evidence_refs"])
+        for review in innovation_reviews
+    )
+    checks.append(_check("G8-INNOVATION-001", "PASS" if innovation_ok else "FAIL", "innovation review records a counterfactual, problem-origin, and empirical assessment" if innovation_ok else "innovation review is missing a structured evidence-backed assessment"))
     open_critical = []
     for review in reviews:
         findings = review.get("findings")
