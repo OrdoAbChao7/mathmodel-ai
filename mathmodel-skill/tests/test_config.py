@@ -153,6 +153,16 @@ class ConfigTests(unittest.TestCase):
     def test_main_help_returns_zero(self):
         self.assertEqual(main(["--help"]), 0)
 
+    def test_init_json_reports_created_project(self):
+        output = StringIO()
+        target = self.root / "new-project"
+        with redirect_stdout(output):
+            self.assertEqual(main(["init", str(target), "--id", "new-001", "--title", "New", "--type", "hybrid", "--json"]), 0)
+        payload = json.loads(output.getvalue())
+        self.assertEqual(payload["status"], "PASS")
+        self.assertEqual(payload["project"], str(target.resolve()))
+        self.assertIn(str((target / "mathmodel.json").resolve()), payload["created"])
+
     def test_run_command_routes_to_orchestrator(self):
         write_json(self.root / "mathmodel.json", valid_config())
         output = StringIO()

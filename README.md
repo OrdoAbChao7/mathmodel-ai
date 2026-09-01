@@ -11,6 +11,7 @@ Supported problem profiles are `forecasting`, `optimization`, `evaluation`, `mec
 ```text
 python -m pip install -r requirements.txt
 python mathmodel-skill/scripts/mathmodel.py init <project> --id <id> --title <title> --type optimization
+python mathmodel-skill/scripts/mathmodel.py init <project> --id <id> --title <title> --type optimization --json
 python mathmodel-skill/scripts/mathmodel.py inspect <project> --json
 python mathmodel-skill/scripts/mathmodel.py build <project> --json
 python mathmodel-skill/scripts/mathmodel.py audit <project> --json

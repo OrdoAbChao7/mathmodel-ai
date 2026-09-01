@@ -483,10 +483,12 @@ def main(argv: list[str] | None = None) -> int:
     init_parser.add_argument("--type", required=True, dest="problem_type")
     init_parser.add_argument("--profile", choices=("cumcm",), default=None)
     init_parser.add_argument("--mode", choices=("research-autonomous", "competition-assisted", "competition-max"), default="research-autonomous")
+    init_parser.add_argument("--json", action="store_true")
     adopt_parser = subparsers.add_parser("adopt")
     adopt_parser.add_argument("target")
     adopt_parser.add_argument("--profile", choices=("cumcm",), default=None)
     adopt_parser.add_argument("--mode", choices=("research-autonomous", "competition-assisted", "competition-max"), default="research-autonomous")
+    adopt_parser.add_argument("--json", action="store_true")
     inspect_parser = subparsers.add_parser("inspect")
     inspect_parser.add_argument("project")
     inspect_parser.add_argument("--json", action="store_true")
@@ -535,19 +537,29 @@ def main(argv: list[str] | None = None) -> int:
         try:
             if args.profile not in (None, "cumcm"):
                 raise ConfigError(f"unsupported profile: {args.profile}")
-            init_project(args.target, args.id, args.title, args.problem_type, args.mode.replace("-", "_"))
+            created = init_project(args.target, args.id, args.title, args.problem_type, args.mode.replace("-", "_"))
         except ValueError as exc:
-            print(f"error: {exc}", file=sys.stderr)
+            if args.json:
+                print(json.dumps({"status": "FAIL", "errors": [str(exc)]}, ensure_ascii=False))
+            else:
+                print(f"error: {exc}", file=sys.stderr)
             return 2
+        if args.json:
+            print(json.dumps({"status": "PASS", "project": str(Path(args.target).resolve()), "created": [str(path) for path in created]}, ensure_ascii=False))
         return 0
     if args.command == "adopt":
         try:
             if args.profile not in (None, "cumcm"):
                 raise ConfigError(f"unsupported profile: {args.profile}")
-            adopt_project(args.target, args.mode.replace("-", "_"))
+            created = adopt_project(args.target, args.mode.replace("-", "_"))
         except (ConfigError, ValueError) as exc:
-            print(f"error: {exc}", file=sys.stderr)
+            if args.json:
+                print(json.dumps({"status": "FAIL", "errors": [str(exc)]}, ensure_ascii=False))
+            else:
+                print(f"error: {exc}", file=sys.stderr)
             return 2
+        if args.json:
+            print(json.dumps({"status": "PASS", "project": str(Path(args.target).resolve()), "created": [str(path) for path in created]}, ensure_ascii=False))
         return 0
     if args.command == "migrate":
         try:
