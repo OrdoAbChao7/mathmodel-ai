@@ -25,7 +25,7 @@ class SubmissionTests(unittest.TestCase):
         (self.root / "artifacts" / "submission-manifest.json").write_text(json.dumps({"supporting_materials": ["solve.py"], "source_programs": ["solve.py"]}), encoding="utf-8")
         (self.root / "solve.py").write_text("print('fixture')", encoding="utf-8")
         (self.root / "mathmodel.json").write_text('{"schema_version":2}', encoding="utf-8")
-        entries = [{"path": "mathmodel.json", "sha256": hashlib.sha256((self.root / "mathmodel.json").read_bytes()).hexdigest()}, {"path": "solve.py", "sha256": hashlib.sha256((self.root / "solve.py").read_bytes()).hexdigest()}]
+        entries = [{"path": relative, "sha256": hashlib.sha256((self.root / relative).read_bytes()).hexdigest()} for relative in ("mathmodel.json", "solve.py", "paper/main.tex", "paper/refs.tex")]
         (self.root / "build" / "source-manifest.json").write_text(json.dumps({"files": entries}), encoding="utf-8")
         (self.root / "build" / "reproducibility-summary.json").write_text(json.dumps({"config_sha256": entries[0]["sha256"]}), encoding="utf-8")
 
@@ -94,6 +94,17 @@ class SubmissionTests(unittest.TestCase):
         result = evaluate_submission(self.root, self.config(), report)
         self.assertEqual(result["status"], "FAIL")
         self.assertTrue(any(item["rule"] == "G9-PROVENANCE-001" for item in result["checks"]))
+
+    def test_provenance_manifest_must_cover_configured_paper_and_source_inputs(self):
+        report = self.report()
+        manifest_path = self.root / "build/source-manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["files"] = [item for item in manifest["files"] if item["path"] != "paper/main.tex"]
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        result = evaluate_submission(self.root, self.config(), report)
+        self.assertEqual(result["status"], "FAIL")
+        provenance = next(item for item in result["checks"] if item["rule"] == "G9-PROVENANCE-001")
+        self.assertIn("paper/main.tex", provenance["evidence"]["missing_required_paths"])
 
     def test_research_mode_is_not_applicable(self):
         result = evaluate_submission(self.root, self.config("research_autonomous"), self.report())

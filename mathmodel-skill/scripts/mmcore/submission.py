@@ -43,7 +43,36 @@ def _load_object(path: Path | None) -> dict[str, Any] | None:
     return value if isinstance(value, dict) else None
 
 
-def _report_provenance(root: Path, report: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
+def _required_manifest_paths(root: Path, config: dict[str, Any]) -> set[str]:
+    """Return the minimum source set that a release manifest must cover."""
+    required = {"mathmodel.json"}
+    inputs = config.get("inputs") if isinstance(config.get("inputs"), dict) else {}
+    for field in ("statements", "attachments"):
+        values = inputs.get(field, []) if isinstance(inputs.get(field), list) else []
+        for value in values:
+            if isinstance(value, str):
+                path = _inside(root, value)
+                if path is not None:
+                    required.add(path.relative_to(root).as_posix())
+    commands = config.get("commands") if isinstance(config.get("commands"), dict) else {}
+    for command in commands.values():
+        if not isinstance(command, list):
+            continue
+        for token in command:
+            if not isinstance(token, str) or Path(token).suffix.lower() not in {".py", ".m", ".r", ".jl", ".ipynb", ".cmd", ".sh"}:
+                continue
+            path = _inside(root, token)
+            if path is not None:
+                required.add(path.relative_to(root).as_posix())
+    paper = config.get("paper") if isinstance(config.get("paper"), dict) else {}
+    main = _inside(root, paper.get("main"))
+    if main is not None:
+        paper_files, _ = _paper_files(root, main)
+        required.update(path.relative_to(root).as_posix() for path in paper_files)
+    return required
+
+
+def _report_provenance(root: Path, report: dict[str, Any], config: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
     """Ensure generated manifests still describe this current workspace."""
     config_path = root / "mathmodel.json"
     summary_path = _inside(root, report.get("reproducibility_summary"))
@@ -67,9 +96,12 @@ def _report_provenance(root: Path, report: dict[str, Any]) -> tuple[bool, dict[s
                 errors.append({"path": relative, "expected": expected, "actual": actual})
             else:
                 seen.add(normalized)
-        manifest_ok = not errors and "mathmodel.json" in seen
+        missing_required_paths = sorted(_required_manifest_paths(root, config) - seen)
+        manifest_ok = not errors and not missing_required_paths and "mathmodel.json" in seen
+    else:
+        missing_required_paths = sorted(_required_manifest_paths(root, config))
     ok = summary_ok and manifest_ok
-    return ok, {"source_manifest": str(source_path) if source_path else None, "reproducibility_summary": str(summary_path) if summary_path else None, "config_sha256": config_hash, "summary_ok": summary_ok, "manifest_ok": manifest_ok, "errors": errors}
+    return ok, {"source_manifest": str(source_path) if source_path else None, "reproducibility_summary": str(summary_path) if summary_path else None, "config_sha256": config_hash, "summary_ok": summary_ok, "manifest_ok": manifest_ok, "missing_required_paths": missing_required_paths, "errors": errors}
 
 
 def _inside(root: Path, value: Any) -> Path | None:
@@ -189,7 +221,7 @@ def evaluate_submission(project: Path, config: dict[str, Any] | None = None, rep
     if loaded is None:
         return {"status": "FAIL", "mode": mode, "checks": [_check("G9-REPORT-001", "FAIL", "quality report is missing or malformed")]}
 
-    provenance_ok, provenance_evidence = _report_provenance(root, loaded)
+    provenance_ok, provenance_evidence = _report_provenance(root, loaded, cfg)
     checks: list[dict[str, Any]] = [_check("G9-PROVENANCE-001", "PASS" if provenance_ok else "FAIL", "quality report provenance matches current workspace" if provenance_ok else "quality report provenance is missing or stale", **provenance_evidence)]
 
     gates = {
