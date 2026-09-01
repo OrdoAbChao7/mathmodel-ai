@@ -128,6 +128,12 @@ def package(project: Path, report: dict[str, Any] | str | Path | None = None) ->
         freeze = loaded.get("results_freeze")
         if not isinstance(freeze, dict) or freeze.get("status") != "PASS":
             checks.append(_record("PACKAGE-FREEZE-001", "FAIL", "formal competition package requires PASS G6 frozen-results evidence"))
+        writer_package = loaded.get("writer_package")
+        if not isinstance(writer_package, dict) or writer_package.get("status") != "PASS":
+            checks.append(_record("PACKAGE-PAPER-EVIDENCE-001", "FAIL", "formal competition package requires PASS G7 paper-evidence evidence"))
+        reviews = loaded.get("review_registry")
+        if not isinstance(reviews, dict) or reviews.get("status") != "PASS":
+            checks.append(_record("PACKAGE-REVIEW-001", "FAIL", "formal competition package requires PASS G8 adversarial-review evidence"))
     quality = loaded.get("quality") if isinstance(loaded.get("quality"), dict) else {}
     manual = quality.get("manual_review")
     if manual != "COMPLETE":
