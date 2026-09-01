@@ -358,6 +358,23 @@ class LatexMetricsTests(unittest.TestCase):
         self.assertEqual(payload["status"], "FAIL")
         self.assertTrue(any(gate["rule"] == "LATEX-PLACEHOLDER-001" for gate in payload["page_gates"]))
 
+    def test_formal_audit_includes_failed_g1_gate(self):
+        write_complete_audit_project(self.root)
+        config = json.loads((self.root / "mathmodel.json").read_text(encoding="utf-8"))
+        config["execution_mode"] = "competition_assisted"
+        (self.root / "mathmodel.json").write_text(json.dumps(config), encoding="utf-8")
+        (self.root / "build" / "latex").mkdir(parents=True)
+        (self.root / "build" / "latex" / "paper.pdf").write_bytes(b"%PDF-1.4\n")
+        self.write_aux()
+        output = StringIO()
+        completed = subprocess.CompletedProcess(["pdfinfo", "paper.pdf"], 0, stdout="Pages: 35\nPage size: 595.28 x 841.89 pts (A4)\n", stderr="")
+        with patch("mmcore.pdfmetrics.subprocess.run", return_value=completed), redirect_stdout(output):
+            exit_code = main(["audit", str(self.root), "--json"])
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 1, payload)
+        self.assertEqual(payload["g1"]["status"], "FAIL")
+        self.assertTrue(any(gate["rule"] == "G1-PROBLEM-INTERPRETATION-001" and gate["status"] == "FAIL" for gate in payload["page_gates"]))
+
     @unittest.skipUnless(os.name == "nt", "fake .cmd engine is a Windows integration test")
     def test_compile_runs_fake_engine_twice_and_preserves_logs(self):
         main_tex = self.root / "paper" / "main.tex"

@@ -109,6 +109,9 @@ def package(project: Path, report: dict[str, Any] | str | Path | None = None) ->
     if requires_formal_compliance(cfg):
         if not isinstance(compliance, dict) or compliance.get("status") != "PASS":
             checks.append(_record("PACKAGE-COMPLIANCE-001", "FAIL", "formal competition package requires PASS CUMCM compliance evidence"))
+        g1 = loaded.get("g1")
+        if not isinstance(g1, dict) or g1.get("status") != "PASS":
+            checks.append(_record("PACKAGE-INTERPRETATION-001", "FAIL", "formal competition package requires PASS G1 interpretation evidence"))
     quality = loaded.get("quality") if isinstance(loaded.get("quality"), dict) else {}
     manual = quality.get("manual_review")
     if manual != "COMPLETE":
