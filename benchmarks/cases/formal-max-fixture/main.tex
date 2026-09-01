@@ -1,0 +1,27 @@
+\documentclass{article}
+\makeatletter
+\newcommand{\mmboundary}[1]{\immediate\write\@auxout{\string\newlabel{#1}{{}{\thepage}}}}
+\makeatother
+\begin{document}
+\mmboundary{mm:body-start}
+\section*{Abstract}
+This deterministic integration fixture solves a constrained allocation problem with a baseline and three alternative routes.
+\section{Problem}
+The objective is to minimize allocation cost subject to demand and capacity constraints.
+\section{Assumptions and models}
+The capacity and demand are measured in consistent units. The selected route is compared with a baseline.
+\section{Validation and results}
+The solver status, feasibility, objective recomputation, baseline comparison, and falsification records are machine checked.
+\section{Conclusion}
+The result is reproducible within the stated fixture scope. \cite{fixture-source}
+\mmboundary{mm:body-end}
+\clearpage
+\mmboundary{mm:references-start}
+\input{paper/references.tex}
+\mmboundary{mm:references-end}
+\clearpage
+\mmboundary{mm:appendix-start}
+\section*{Appendix: Reproducibility Record}
+The solver status, feasibility, objective recomputation, baseline comparison, and falsification records are machine checked.
+\mmboundary{mm:appendix-end}
+\end{document}

@@ -2,6 +2,15 @@
   "schema_version": 1,
   "cases": [
     {
+      "case_id": "formal-max-001",
+      "title": "Competition-max deterministic integration fixture",
+      "problem_type": "optimization",
+      "project": "benchmarks/cases/formal-max-fixture",
+      "source": "repository fixture",
+      "enabled": true,
+      "execution_mode": "competition_max"
+    },
+    {
       "case_id": "fixture-forecasting",
       "title": "Forecasting regression fixture",
       "problem_type": "forecasting",

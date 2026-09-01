@@ -127,8 +127,14 @@ def compile_latex(project: Path, main: Path, engine: str, jobname: str) -> dict[
         return result
 
     output_dir.mkdir(parents=True, exist_ok=True)
+    engine_command = engine
+    configured_engine = Path(engine)
+    if not configured_engine.is_absolute() and configured_engine.suffix.lower() in {".cmd", ".bat"}:
+        candidate_engine = (root / configured_engine).resolve()
+        if candidate_engine.is_file():
+            engine_command = str(candidate_engine)
     command = [
-        engine,
+        engine_command,
         "-interaction=nonstopmode",
         "-halt-on-error",
         f"-output-directory={output_dir}",
@@ -141,7 +147,7 @@ def compile_latex(project: Path, main: Path, engine: str, jobname: str) -> dict[
     # already resolved from the project configuration and is checked by the
     # caller, so enable the platform-native interpreter only for .cmd/.bat
     # wrappers; ordinary engines retain shell=False.
-    use_shell = os.name == "nt" and Path(engine).suffix.lower() in {".cmd", ".bat"}
+    use_shell = os.name == "nt" and Path(engine_command).suffix.lower() in {".cmd", ".bat"}
     for pass_number in (1, 2):
         result["commands"].append(command.copy())
         stdout_path = output_dir / f"pass-{pass_number}.stdout.log"

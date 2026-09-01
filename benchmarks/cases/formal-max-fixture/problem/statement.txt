@@ -1,0 +1,1 @@
+Determine the minimum-cost allocation for a fixed demand under a capacity constraint.

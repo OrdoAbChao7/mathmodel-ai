@@ -39,3 +39,8 @@ mathmodel-skill/vendor/
 *.jpeg
 *.gif
 *.eps
+
+# Generated evidence for the executable competition-max benchmark fixture
+/benchmarks/cases/formal-max-fixture/analysis/
+/benchmarks/cases/formal-max-fixture/artifacts/
+/benchmarks/cases/formal-max-fixture/figures/
