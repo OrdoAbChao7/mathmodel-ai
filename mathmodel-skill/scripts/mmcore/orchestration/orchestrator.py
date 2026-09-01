@@ -123,10 +123,13 @@ def _stage_passes(outcome: dict[str, Any], stage: str) -> bool:
     return isinstance(outcome.get("checks"), list)
 
 
-def _default_runner(project: Path, stage: str, timeout_seconds: int = 300) -> dict[str, Any]:
+def _default_runner(project: Path, stage: str, timeout_seconds: int = 300, execution_mode: str | None = None) -> dict[str, Any]:
     script = Path(__file__).resolve().parents[2] / "mathmodel.py"
+    command = [sys.executable, str(script), stage, str(project), "--json"]
+    if isinstance(execution_mode, str) and execution_mode:
+        command[4:4] = ["--mode", execution_mode.replace("_", "-")]
     try:
-        completed = subprocess.run([sys.executable, str(script), stage, str(project), "--json"], cwd=project, capture_output=True, text=True, timeout=max(1, timeout_seconds), check=False)
+        completed = subprocess.run(command, cwd=project, capture_output=True, text=True, timeout=max(1, timeout_seconds), check=False)
     except subprocess.TimeoutExpired as exc:
         return {"status": "FAIL", "error": f"stage exceeded orchestration timeout: {exc}"}
     try:
@@ -183,7 +186,7 @@ def run_pipeline(project: Path, config: dict[str, Any], runner: Callable[[str], 
         def call(stage: str) -> dict[str, Any]:
             remaining = budget.get("remaining_seconds")
             timeout = max(1, min(300, remaining - budget.get("submission_buffer_seconds", 0))) if isinstance(remaining, int) and not isinstance(remaining, bool) else 300
-            return _default_runner(root, stage, timeout)
+            return _default_runner(root, stage, timeout, config.get("execution_mode"))
     results: dict[str, Any] = {}
     for stage in stages:
         current_budget = evaluate_budget(config, clock() if clock else now)

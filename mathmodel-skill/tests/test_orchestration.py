@@ -4,13 +4,15 @@ import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 from mmcore.orchestration.time_budget import evaluate_budget, stopping_decision
-from mmcore.orchestration.orchestrator import run_pipeline, run_parallel
+from mmcore.orchestration.orchestrator import _default_runner, run_pipeline, run_parallel
 
 
 class OrchestrationTests(unittest.TestCase):
@@ -101,6 +103,17 @@ class OrchestrationTests(unittest.TestCase):
         self.assertEqual(result["blocked_stage"], "audit")
         self.assertEqual(result["missing_human_gates"], ["H3_RESULT_VERIFICATION"])
         self.assertEqual(calls, ["build"])
+
+    def test_default_runner_propagates_one_run_mode_override_to_child_stage(self):
+        captured = {}
+
+        def fake_run(command, **kwargs):
+            captured["command"] = command
+            return SimpleNamespace(stdout=json.dumps({"status": "PASS", "stage": "build", "page_gates": [{"status": "PASS"}]}), stderr="", returncode=0)
+
+        with patch("mmcore.orchestration.orchestrator.subprocess.run", side_effect=fake_run):
+            _default_runner(self.root, "build", execution_mode="competition_max")
+        self.assertEqual(captured["command"][4:6], ["--mode", "competition-max"])
 
     def test_pipeline_resume_skips_completed_stage(self):
         calls = []

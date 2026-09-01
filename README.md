@@ -25,7 +25,7 @@ The package command blocks unresolved manual review, missing evidence, failed qu
 
 In formal competition modes, `run` is human-checkpoint aware: it blocks before `build` until H1 and H2 are signed, before `audit` until H3 is signed, and before `package` until H4 is signed. The block is reported as `BLOCKED_HUMAN_INPUT`; research mode keeps the legacy autonomous orchestration behavior.
 
-The `--profile cumcm` and `--mode` options are per-run overrides. They never rewrite the project configuration; accepted modes are `research-autonomous`, `competition-assisted`, and `competition-max`.
+The `--profile cumcm` and `--mode` options are per-run overrides. They never rewrite the project configuration; accepted modes are `research-autonomous`, `competition-assisted`, and `competition-max`. The orchestrator propagates the selected mode to each child `build`, `audit`, and `package` stage, so a formal override cannot silently fall back to the on-disk research mode.
 
 `init` and `adopt` accept the same profile/mode selection for new project metadata and create `CUMCM-WORKFLOW.md`. Existing files and existing configuration are preserved; no human-review ledger is synthesized by scaffolding.
 

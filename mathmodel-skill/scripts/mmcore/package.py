@@ -97,11 +97,11 @@ def _path_hashes(project: Path, report: dict[str, Any]) -> tuple[list[dict[str, 
     return checks, files
 
 
-def package(project: Path, report: dict[str, Any] | str | Path | None = None) -> dict[str, Any]:
+def package(project: Path, report: dict[str, Any] | str | Path | None = None, config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Create a release bundle, or return BLOCKED with actionable checks."""
     root = Path(project).resolve()
     try:
-        cfg = load_config(root)
+        cfg = config if isinstance(config, dict) else load_config(root)
         loaded = _load_report(root, report)
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         return {"status": "BLOCKED", "checks": [_record("PACKAGE-INPUT-001", "FAIL", str(exc))]}

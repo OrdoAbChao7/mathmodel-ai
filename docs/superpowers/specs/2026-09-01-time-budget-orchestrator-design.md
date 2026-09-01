@@ -17,3 +17,5 @@ The orchestrator never weakens G0–G8, never treats malformed state as success,
 Formal modes also enforce the CUMCM human-governance sequence at orchestration boundaries. Before `build`, H1 (problem understanding) and H2 (method selection) must have current approved records; before `audit`, H3 (result verification) must be approved; before `package`, H4 (final submission) must be approved. A missing, stale, malformed, or rejected record returns `BLOCKED_HUMAN_INPUT` with the blocked stage and required gates, and no runner is invoked for that stage. Research mode remains not applicable and keeps the existing autonomous behavior.
 
 The CLI accepts `mathmodel run PROJECT --profile cumcm --mode competition-max --json` as a per-run override. The mode name is normalized to the internal `execution_mode` value and the on-disk `mathmodel.json` remains unchanged.
+
+The default child-stage runner forwards that normalized mode to `build`, `audit`, and `package`; each stage accepts the same override and evaluates the same local gates. This prevents a parent-only mode switch from being lost at a subprocess boundary.

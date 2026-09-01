@@ -350,6 +350,14 @@ def _release_status(contract: dict, page_gates: list[dict], compile_result: dict
     return "PASS"
 
 
+def _apply_mode_override(config: dict, mode: str | None) -> dict:
+    if mode is None:
+        return config
+    updated = dict(config)
+    updated["execution_mode"] = mode.replace("-", "_")
+    return updated
+
+
 def _source_gates(project: Path, cfg: dict) -> tuple[Path, list[dict]]:
     main_path = project / cfg["paper"]["main"]
     if not main_path.is_file():
@@ -484,12 +492,15 @@ def main(argv: list[str] | None = None) -> int:
     inspect_parser.add_argument("--json", action="store_true")
     audit_parser = subparsers.add_parser("audit")
     audit_parser.add_argument("project")
+    audit_parser.add_argument("--mode", choices=("research-autonomous", "competition-assisted", "competition-max"), default=None)
     audit_parser.add_argument("--json", action="store_true")
     build_parser = subparsers.add_parser("build")
     build_parser.add_argument("project")
+    build_parser.add_argument("--mode", choices=("research-autonomous", "competition-assisted", "competition-max"), default=None)
     build_parser.add_argument("--json", action="store_true")
     package_parser = subparsers.add_parser("package")
     package_parser.add_argument("project")
+    package_parser.add_argument("--mode", choices=("research-autonomous", "competition-assisted", "competition-max"), default=None)
     package_parser.add_argument("--json", action="store_true")
     run_parser = subparsers.add_parser("run")
     run_parser.add_argument("project")
@@ -566,6 +577,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "audit":
         project = Path(args.project).resolve()
         cfg = load_config(project)
+        cfg = _apply_mode_override(cfg, args.mode)
         contract = validate_artifacts(project, REQUIRED_ARTIFACTS)
         quality = score_quality(contract["checks"], cfg.get("quality", {}).get("manual_scores"))
         page_metrics = _measure_current_pdf(project, cfg)
@@ -624,6 +636,7 @@ def main(argv: list[str] | None = None) -> int:
         project = Path(args.project).resolve()
         try:
             cfg = load_config(project)
+            cfg = _apply_mode_override(cfg, args.mode)
         except ConfigError as exc:
             result = {"status": "FAIL", "errors": [{"rule": "BUILD-CONFIG-001", "message": str(exc)}]}
             if args.json:
@@ -769,7 +782,11 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if release_status == "PASS" else 1
     if args.command == "package":
         project = Path(args.project).resolve()
-        result = package_project(project)
+        try:
+            cfg = _apply_mode_override(load_config(project), args.mode)
+            result = package_project(project, config=cfg)
+        except (ConfigError, OSError, TypeError, ValueError) as exc:
+            result = {"status": "BLOCKED", "checks": [{"rule": "PACKAGE-INPUT-001", "status": "FAIL", "message": str(exc)}]}
         if args.json:
             print(json.dumps(result, ensure_ascii=False))
         else:
