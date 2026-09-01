@@ -27,6 +27,11 @@ _H2_ARTIFACTS = {
     "artifacts/candidate-registry.json", "artifacts/method-cards.json",
     "artifacts/risk-probe.json", "artifacts/decision-ledger.jsonl",
 }
+_RIGOR_LIMITS = {
+    "fast": {"minimum_total_candidates": 2, "minimum_non_baseline_routes": 1, "maximum_non_baseline_routes": 2},
+    "standard": {"minimum_total_candidates": 4, "minimum_non_baseline_routes": 3, "maximum_non_baseline_routes": 5},
+    "max": {"minimum_total_candidates": 4, "minimum_non_baseline_routes": 3, "maximum_non_baseline_routes": 5},
+}
 
 
 def _profile() -> dict[str, Any]:
@@ -179,10 +184,14 @@ def _risk_checks(project: Path, candidates: list[dict[str, Any]], fields: tuple[
     return checks
 
 
-def _g2_checks(project: Path, profile: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def _g2_checks(project: Path, profile: dict[str, Any], rigor: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, int]]:
     candidates, checks, _ = _load_candidates(project)
-    minimum = int(profile.get("model_tournament", {}).get("minimum_total_candidates", 4))
-    minimum_routes = int(profile.get("model_tournament", {}).get("minimum_non_baseline_routes", 3))
+    profile_limits = profile.get("model_tournament", {})
+    limits = dict(_RIGOR_LIMITS[rigor])
+    if rigor != "fast":
+        limits.update({key: int(profile_limits.get(key, value)) for key, value in limits.items()})
+    minimum = limits["minimum_total_candidates"]
+    minimum_routes = limits["minimum_non_baseline_routes"]
     if len(candidates) < minimum:
         checks.append(_check("G2-CANDIDATE-COVERAGE-001", "FAIL", "minimum candidate count is not met", actual=len(candidates), minimum=minimum))
     elif candidates:
@@ -199,13 +208,13 @@ def _g2_checks(project: Path, profile: dict[str, Any]) -> tuple[list[dict[str, A
         checks.append(_check("G2-DIVERSITY-001", "FAIL", "minimum conceptual route diversity is not met", actual=len(routes), minimum=minimum_routes))
     else:
         checks.append(_check("G2-DIVERSITY-001", "PASS", "conceptual route diversity is met", actual=len(routes), minimum=minimum_routes))
-    maximum_routes = int(profile.get("model_tournament", {}).get("maximum_non_baseline_routes", 5))
+    maximum_routes = limits["maximum_non_baseline_routes"]
     if len(routes) > maximum_routes:
         checks.append(_check("G2-DIVERSITY-002", "WARN", "candidate routes exceed the profile review budget", actual=len(routes), maximum=maximum_routes))
     checks.extend(_load_cards(project, candidates))
     risk_fields = tuple(profile.get("model_tournament", {}).get("risk_fields", _DEFAULT_RISK_FIELDS))
     checks.extend(_risk_checks(project, candidates, risk_fields))
-    return checks, candidates
+    return checks, candidates, limits
 
 
 def _decision_checks(project: Path, candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -290,7 +299,11 @@ def evaluate_model_tournament(project: Path, config: dict[str, Any]) -> dict[str
         return {"status": "FAIL", "mode": "INVALID", "g2": {"status": "FAIL", "checks": [check]}, "g3": {"status": "FAIL", "checks": [_check("G3-CONFIG-001", "FAIL", "invalid execution_mode prevents model selection")]}}
     if mode not in set(profile.get("formal_modes", ("competition_assisted", "competition_max"))):
         return {"status": "NOT_APPLICABLE", "mode": mode, "g2": {"status": "NOT_APPLICABLE", "checks": []}, "g3": {"status": "NOT_APPLICABLE", "checks": []}}
-    g2_checks, candidates = _g2_checks(Path(project), profile)
+    rigor = config.get("rigor", "standard")
+    if not isinstance(rigor, str) or rigor not in _RIGOR_LIMITS:
+        check = _check("G2-CONFIG-002", "FAIL", "rigor must be one of fast, standard, max", rigor=rigor)
+        return {"status": "FAIL", "mode": mode, "rigor": rigor, "g2": {"status": "FAIL", "checks": [check]}, "g3": {"status": "FAIL", "checks": []}}
+    g2_checks, candidates, limits = _g2_checks(Path(project), profile, rigor)
     g2_status = "PASS" if g2_checks and all(check["status"] == "PASS" for check in g2_checks) else "FAIL"
     g3_checks = []
     if g2_status != "PASS":
@@ -302,6 +315,8 @@ def evaluate_model_tournament(project: Path, config: dict[str, Any]) -> dict[str
     return {
         "status": "PASS" if g2_status == "PASS" and g3_status == "PASS" else "FAIL",
         "mode": mode,
+        "rigor": rigor,
+        "limits": limits,
         "profile": profile.get("profile_id"),
         "rule_version": profile.get("rule_version"),
         "g2": {"status": g2_status, "checks": g2_checks, "candidate_ids": [item["id"] for item in candidates]},
