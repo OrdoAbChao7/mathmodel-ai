@@ -82,6 +82,23 @@ class BenchmarkTests(unittest.TestCase):
         with self.assertRaises(BenchmarkError):
             load_case_registry(self.root, path)
 
+    def test_registry_accepts_all_supported_problem_profiles(self):
+        cases = []
+        for index, problem_type in enumerate(("forecasting", "optimization", "evaluation", "mechanism", "simulation", "classification", "statistics", "hybrid")):
+            case_project = self.root / "cases" / problem_type
+            case_project.mkdir(parents=True, exist_ok=True)
+            cases.append({
+                "case_id": f"case-{index}",
+                "title": problem_type,
+                "problem_type": problem_type,
+                "source": "local-test-fixture",
+                "project": f"cases/{problem_type}",
+            })
+        registry_path = self.root / "all-profiles.json"
+        registry_path.write_text(json.dumps({"schema_version": 1, "cases": cases}), encoding="utf-8")
+        registry = load_case_registry(self.root, registry_path)
+        self.assertEqual(len(registry["cases"]), 8)
+
     def test_ab_runner_aggregates_and_promotes_meaningful_improvement(self):
         registry = load_case_registry(self.root, self.registry())
         report = run_ab_benchmark(

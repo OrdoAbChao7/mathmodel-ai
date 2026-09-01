@@ -17,7 +17,16 @@ class BenchmarkError(ValueError):
     """Raised when a benchmark registry or result violates its contract."""
 
 
-_PROBLEM_TYPES = {"forecasting", "optimization", "evaluation", "mechanism", "classification", "statistics"}
+_PROBLEM_TYPES = {
+    "forecasting",
+    "optimization",
+    "evaluation",
+    "mechanism",
+    "simulation",
+    "classification",
+    "statistics",
+    "hybrid",
+}
 _LOWER_IS_BETTER = {
     "unsupported_claim_count",
     "critical_reviewer_findings",
