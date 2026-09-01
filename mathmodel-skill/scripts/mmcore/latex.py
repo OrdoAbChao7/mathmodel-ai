@@ -78,7 +78,12 @@ def _scan_log(path: Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
 
 def _scan_process_output(text: str, path: Path) -> list[dict[str, Any]]:
     """Extract environment diagnostics emitted before a TeX log exists."""
-    if "major issue: so far, you have not checked for miktex updates" in text.lower():
+    lowered = text.lower()
+    if (
+        "major issue: so far, you have not checked for miktex updates" in lowered
+        or "it seems that this is a fresh tex installation" in lowered
+        or ("log4cxx" in lowered and ("io exception" in lowered or "denied" in lowered or "拒绝访问" in text))
+    ):
         return [_record(
             "LATEX-ENV-001",
             "MiKTeX setup is incomplete; check updates and initialize the local package database",
