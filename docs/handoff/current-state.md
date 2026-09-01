@@ -8,7 +8,7 @@ This document is the factual entry point for a new agent. It records the reposit
 - **Branch:** `main`
 - **HEAD at handoff preparation start:** `e95ab2823f82e9a5460eb4815ab8abab26a2d6a7` (`feat: expose bounded capability resolver CLI`)
 - **Working tree at handoff preparation start:** no tracked or staged changes; pre-existing untracked `skill-dist/` was deliberately preserved and is not part of the public v2 core.
-- **Stable baseline tag:** `pre-realcase-training-v1` (created on the final verified handoff commit; see the final commit recorded below).
+- **Stable baseline tag:** `pre-realcase-training-v1`, pointing to the last verified implementation commit `e95ab2823f82e9a5460eb4815ab8abab26a2d6a7`; the handoff-document commit is recorded separately in the repository history.
 
 ## Project positioning
 
@@ -66,4 +66,4 @@ The root contains historical `task-*.md` reports and the pre-existing untracked 
 
 ## Baseline pointer
 
-The immutable handoff baseline is the tag `pre-realcase-training-v1`, pointing at the final commit created for this preparation. The corresponding SHA is recorded in the final commit and in `docs/handoff/baseline-verification.md`; future Phase 10 work must be compared against this tag rather than against an assumed chat history.
+The immutable pre-training code baseline is the tag `pre-realcase-training-v1`, pointing at `e95ab2823f82e9a5460eb4815ab8abab26a2d6a7`. The handoff preparation itself is committed afterward as `7a8c58cd560619aeadf10afe5b8b0fedd6ca3951`. Future Phase 10 work must compare against the tag rather than against an assumed chat history.
