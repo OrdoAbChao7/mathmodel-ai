@@ -545,7 +545,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"error: {exc}", file=sys.stderr)
             return 2
         if args.json:
-            print(json.dumps({"status": "PASS", "project": str(Path(args.target).resolve()), "created": [str(path) for path in created]}, ensure_ascii=False))
+            print(json.dumps({"status": "PASS", "project": str(Path(args.target).resolve()), "created": [str(Path(path).resolve()) for path in created]}, ensure_ascii=False))
         return 0
     if args.command == "adopt":
         try:
@@ -559,7 +559,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"error: {exc}", file=sys.stderr)
             return 2
         if args.json:
-            print(json.dumps({"status": "PASS", "project": str(Path(args.target).resolve()), "created": [str(path) for path in created]}, ensure_ascii=False))
+            print(json.dumps({"status": "PASS", "project": str(Path(args.target).resolve()), "created": [str(Path(path).resolve()) for path in created]}, ensure_ascii=False))
         return 0
     if args.command == "migrate":
         try:
