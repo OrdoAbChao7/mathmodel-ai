@@ -83,6 +83,26 @@ class SubmissionTests(unittest.TestCase):
         max_check = next(item for item in result["checks"] if item["rule"] == "G9-MAX-001")
         self.assertEqual(max_check["status"], "FAIL")
 
+    def test_competition_max_accepts_structured_extension_evidence(self):
+        ars_evidence = self.root / "artifacts" / "ars-review.json"
+        ars_evidence.write_text("{\"finding_count\": 0}\n", encoding="utf-8")
+        (self.root / "artifacts" / "competition-max-review.json").write_text(json.dumps({
+            "schema_version": 1,
+            "generated_by": "local_max_rigor_engine",
+            "model_scout_records": [{"id": "scout-1"}, {"id": "scout-2"}],
+            "candidate_route_records": [{"id": f"route-{index}"} for index in range(1, 5)],
+            "red_team_round_records": [{"id": "red-1"}, {"id": "red-2"}],
+            "robustness_attacks": ["alternative_split", "extreme_scenario", "bootstrap"],
+            "external_reviews": [{"provider": "ars", "status": "COMPLETE", "evidence": "artifacts/ars-review.json"}],
+        }), encoding="utf-8")
+        (self.root / "artifacts" / "ai-usage-ledger.jsonl").write_text("{}\n", encoding="utf-8")
+        report = self.report()
+        report["max_rigor"] = {"status": "PASS"}
+        result = evaluate_submission(self.root, self.config("competition_max"), report)
+        self.assertEqual(result["status"], "PASS", result)
+        max_check = next(item for item in result["checks"] if item["rule"] == "G9-MAX-001")
+        self.assertEqual(max_check["status"], "PASS")
+
     def test_identity_in_source_blocks_submission(self):
         (self.root / "paper" / "main.tex").write_text("姓名：张三\\begin{document}AI usage disclosure.\\end{document}", encoding="utf-8")
         result = evaluate_submission(self.root, self.config(), self.report())
