@@ -25,9 +25,10 @@ class ArchitectureFreezeTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
-        self.cfg = {"problem_type": "optimization", "execution_mode": "competition_assisted", "inputs": {"attachments": ["data/raw.csv"], "statements": []}}
+        self.cfg = {"problem_type": "optimization", "execution_mode": "competition_assisted", "inputs": {"attachments": ["data/raw.csv"], "statements": ["statement.txt"]}}
         (self.root / "data").mkdir()
         (self.root / "data/raw.csv").write_text("x,y\n1,2\n", encoding="utf-8")
+        (self.root / "statement.txt").write_text("problem statement", encoding="utf-8")
         write_json(self.root, "mathmodel.json", self.cfg)
         write_json(self.root, "artifacts/problem-map.json", {"questions": [{"id": "q1"}, {"id": "q2"}]})
         write_json(self.root, "artifacts/model-registry.json", {"models": [{"id": "m1", "question_id": "q1"}, {"id": "m2", "question_id": "q2"}]})
@@ -80,6 +81,13 @@ class ArchitectureFreezeTests(unittest.TestCase):
         report = evaluate_results_freeze(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
         self.assertTrue(report["stale_nodes"])
+
+    def test_statement_change_blocks_g6(self):
+        self.install_freeze()
+        (self.root / "statement.txt").write_text("changed problem statement", encoding="utf-8")
+        report = evaluate_results_freeze(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertIn("raw_data_hash", report["changed_hashes"])
 
     def test_frozen_result_mismatch_blocks_g6(self):
         self.install_freeze()

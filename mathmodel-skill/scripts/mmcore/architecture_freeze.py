@@ -205,7 +205,7 @@ def compute_upstream_hashes(project: Path, config: dict[str, Any]) -> dict[str, 
     for field in ("statements", "attachments"):
         values = config.get("inputs", {}).get(field, []) if isinstance(config.get("inputs"), dict) else []
         values = values if isinstance(values, list) else []
-    input_paths.extend((root / item).resolve() for item in values if isinstance(item, str))
+        input_paths.extend((root / item).resolve() for item in values if isinstance(item, str))
     code_paths = [path for folder in (root / "analysis", root / "paper") for path in folder.rglob("*") if path.is_file() and path.suffix.lower() in {".py", ".m", ".r", ".jl", ".tex"}] if (root / "analysis").exists() or (root / "paper").exists() else []
     hashes: dict[str, Any] = {
         "raw_data_hash": _hash_paths(root, input_paths),
