@@ -42,3 +42,5 @@ Formal G8 review also requires an independent innovation assessment backed by re
 `competition_max` additionally requires `artifacts/competition-max-review.json`, documenting at least two model scouts, four candidate routes, three robustness attacks, two red-team rounds, and a completed ARS review. `competition_assisted` does not require this extension artifact.
 
 Formal validation also requires `artifacts/experiment-registry.json`; its records bind runs to code, inputs, configuration, seed, environment, metrics, figures, and result artifacts, with hashes recomputed by the local evaluator.
+
+At G9, release hash entries are independently recomputed against current project files; a forged `PASS`, stale digest, duplicate path, or unsafe path blocks submission.

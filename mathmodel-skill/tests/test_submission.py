@@ -1,4 +1,5 @@
 import json
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -45,7 +46,7 @@ class SubmissionTests(unittest.TestCase):
             "results_freeze": {"status": "PASS"},
             "writer_package": {"status": "PASS"},
             "review_registry": {"status": "PASS", "open_critical": []},
-            "hash_checks": [{"status": "PASS"}],
+            "hash_checks": [{"kind": "script", "path": "solve.py", "expected": hashlib.sha256((self.root / "solve.py").read_bytes()).hexdigest(), "status": "PASS"}],
         }
 
     def test_formal_submission_passes_only_with_complete_evidence(self):
@@ -73,6 +74,13 @@ class SubmissionTests(unittest.TestCase):
         result = evaluate_submission(self.root, self.config(), self.report())
         self.assertEqual(result["status"], "FAIL")
         self.assertTrue(any(item["rule"] == "G9-ANONYMITY-001" for item in result["checks"]))
+
+    def test_stale_release_hash_blocks_submission(self):
+        report = self.report()
+        report["hash_checks"][0]["expected"] = "0" * 64
+        result = evaluate_submission(self.root, self.config(), report)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertTrue(any(item["rule"] == "G9-HASH-001" for item in result["checks"]))
 
     def test_research_mode_is_not_applicable(self):
         result = evaluate_submission(self.root, self.config("research_autonomous"), self.report())

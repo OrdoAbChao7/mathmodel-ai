@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import re
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,14 @@ _IDENTITY_PATTERNS = (
 
 def _check(rule: str, status: str, message: str, **evidence: Any) -> dict[str, Any]:
     return {"rule": rule, "status": status, "message": message, "evidence": evidence}
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _inside(root: Path, value: str) -> Path | None:
@@ -192,7 +201,21 @@ def evaluate_submission(project: Path, config: dict[str, Any] | None = None, rep
     ai_ok = ai_ledger.is_file() and bool(ai_ledger.read_text(encoding="utf-8").strip()) and bool(re.search(r"AI\s*(usage|使用|disclosure|声明)", source_text, re.IGNORECASE))
     checks.append(_check("G9-AI-001", "PASS" if ai_ok else "FAIL", "AI usage detail artifact and paper disclosure are present", ledger=str(ai_ledger)))
     hashes = loaded.get("hash_checks")
-    hashes_ok = isinstance(hashes, list) and bool(hashes) and all(isinstance(item, dict) and item.get("status") == "PASS" for item in hashes)
-    checks.append(_check("G9-HASH-001", "PASS" if hashes_ok else "FAIL", "release hashes are current", count=len(hashes) if isinstance(hashes, list) else 0))
+    hash_errors: list[Any] = []
+    seen_hash_paths: set[str] = set()
+    if isinstance(hashes, list) and hashes:
+        for item in hashes:
+            relative = item.get("path") if isinstance(item, dict) else None
+            candidate = _inside(root, relative) if isinstance(relative, str) else None
+            normalized = relative.replace("\\", "/") if isinstance(relative, str) else None
+            actual = _sha256(candidate) if candidate is not None and candidate.is_file() else None
+            if not isinstance(item, dict) or item.get("status") != "PASS" or not isinstance(normalized, str) or normalized in seen_hash_paths or not isinstance(item.get("expected"), str) or actual != item.get("expected"):
+                hash_errors.append({"path": relative, "expected": item.get("expected") if isinstance(item, dict) else None, "actual": actual})
+            elif normalized is not None:
+                seen_hash_paths.add(normalized)
+    else:
+        hash_errors.append("hash_checks must be a non-empty array")
+    hashes_ok = not hash_errors
+    checks.append(_check("G9-HASH-001", "PASS" if hashes_ok else "FAIL", "release hashes match current files" if hashes_ok else "release hashes are missing, duplicated, or stale", count=len(hashes) if isinstance(hashes, list) else 0, errors=hash_errors))
     status = "PASS" if checks and all(item["status"] == "PASS" for item in checks) else "FAIL"
     return {"status": status, "mode": mode, "release_status": status, "checks": checks}
