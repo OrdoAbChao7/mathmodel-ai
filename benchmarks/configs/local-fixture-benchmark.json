@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "name": "local-fixture-smoke",
+  "purpose": "Validate the benchmark harness execution path only; not a competition score.",
+  "repeats": 3,
+  "control": {
+    "provider": "deterministic-fixture",
+    "model": "fixture-v1",
+    "budget": 100,
+    "evidence": "repository-fixtures"
+  }
+}
