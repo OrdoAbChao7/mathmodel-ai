@@ -94,6 +94,14 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(main(["benchmark", str(self.root), "--json"]), 0)
         self.assertEqual(json.loads(output.getvalue())["report_path"], str(self.root / "report.json"))
 
+    def test_submission_command_routes_to_g9_evaluator(self):
+        write_json(self.root / "mathmodel.json", valid_config())
+        output = StringIO()
+        with patch("mathmodel.evaluate_submission", return_value={"status": "NOT_APPLICABLE"}) as evaluator, redirect_stdout(output):
+            self.assertEqual(main(["submission", str(self.root), "--json"]), 0)
+        evaluator.assert_called_once()
+        self.assertEqual(json.loads(output.getvalue())["status"], "NOT_APPLICABLE")
+
     def test_authority_command_reports_local_constitution(self):
         (self.root / "CONSTITUTION.md").write_text("local authority", encoding="utf-8")
         output = StringIO()

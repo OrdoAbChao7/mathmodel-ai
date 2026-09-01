@@ -19,6 +19,7 @@ from mmcore.paper_review import evaluate_review_registry, evaluate_writer_packag
 from mmcore.external_capabilities import evaluate_capability_configuration
 from mmcore.orchestration.orchestrator import run_pipeline
 from mmcore.benchmark import BenchmarkError, load_case_registry, run_configured_benchmark, write_benchmark_report
+from mmcore.submission import evaluate_submission
 from mmcore.contracts import REQUIRED_ARTIFACTS, validate_artifacts
 from mmcore.manifest import inventory_project, new_run, update_stage, sha256_file
 from mmcore.latex import compile_latex, find_latex_placeholders
@@ -445,6 +446,9 @@ def main(argv: list[str] | None = None) -> int:
     benchmark_parser.add_argument("--registry")
     benchmark_parser.add_argument("--repeats", type=int, default=1)
     benchmark_parser.add_argument("--json", action="store_true")
+    submission_parser = subparsers.add_parser("submission")
+    submission_parser.add_argument("project")
+    submission_parser.add_argument("--json", action="store_true")
     authority_parser = subparsers.add_parser("authority")
     authority_parser.add_argument("project")
     authority_parser.add_argument("--json", action="store_true")
@@ -714,6 +718,18 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(f"benchmark: {result['status']} ({result.get('report_path', project)})")
         return 0 if result["status"] == "PASS" else 1
+    if args.command == "submission":
+        project = Path(args.project).resolve()
+        try:
+            cfg = load_config(project)
+            result = evaluate_submission(project, cfg)
+        except (ConfigError, OSError, TypeError, ValueError) as exc:
+            result = {"status": "FAIL", "errors": [str(exc)]}
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False))
+        else:
+            print(f"submission: {result['status']} ({project})")
+        return 0 if result["status"] in {"PASS", "NOT_APPLICABLE"} else 1
     if args.command == "authority":
         report = _authority_report(Path(args.project).resolve())
         if args.json:
