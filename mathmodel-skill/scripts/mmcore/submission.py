@@ -118,7 +118,11 @@ def _source_check(root: Path, config: dict[str, Any]) -> tuple[bool, dict[str, A
     for value in (materials or []) + (listed_sources or []):
         if not isinstance(value, str) or (_inside(root, value) is None) or not _inside(root, value).is_file():
             invalid.append(value)
-    return bool(found) and valid_lists and not invalid, {"detected_programs": sorted(set(found)), "supporting_materials": materials, "source_programs": listed_sources, "invalid": invalid}
+    configured_inputs = config.get("inputs") if isinstance(config.get("inputs"), dict) else {}
+    required_materials = configured_inputs.get("attachments") if isinstance(configured_inputs.get("attachments"), list) else []
+    material_set = {value.replace("\\", "/") for value in materials or [] if isinstance(value, str)}
+    missing_materials = [value for value in required_materials if isinstance(value, str) and value.replace("\\", "/") not in material_set]
+    return bool(found) and valid_lists and not invalid and not missing_materials, {"detected_programs": sorted(set(found)), "supporting_materials": materials, "source_programs": listed_sources, "invalid": invalid, "missing_configured_attachments": missing_materials}
 
 
 def evaluate_submission(project: Path, config: dict[str, Any] | None = None, report: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -164,10 +168,17 @@ def evaluate_submission(project: Path, config: dict[str, Any] | None = None, rep
     main_value = cfg.get("paper", {}).get("main") if isinstance(cfg.get("paper"), dict) else None
     main = _inside(root, main_value) if isinstance(main_value, str) else None
     files, input_errors = _paper_files(root, main) if main else ([], ["paper.main is missing or outside project"])
-    source_text = "\n".join(path.read_text(encoding="utf-8") for path in files if path.is_file())
+    readable_text: list[str] = []
+    read_errors: list[str] = []
+    for path in files:
+        try:
+            readable_text.append(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeDecodeError) as exc:
+            read_errors.append(str(exc))
+    source_text = "\n".join(readable_text)
     anonymous = not any(re.search(pattern, source_text, re.IGNORECASE) for pattern in _IDENTITY_PATTERNS)
-    checks.append(_check("G9-ANONYMITY-001", "PASS" if anonymous else "FAIL", "paper source contains no prohibited identity fields", input_errors=input_errors))
-    references_ok, reference_evidence = _reference_check(root, files) if not input_errors else (False, {"missing_inputs": input_errors})
+    checks.append(_check("G9-ANONYMITY-001", "PASS" if anonymous and not read_errors else "FAIL", "paper source contains no prohibited identity fields", input_errors=input_errors, read_errors=read_errors))
+    references_ok, reference_evidence = _reference_check(root, files) if not input_errors and not read_errors else (False, {"missing_inputs": input_errors + read_errors})
     checks.append(_check("G9-REFERENCES-001", "PASS" if references_ok else "FAIL", "references and TeX inputs resolve", **reference_evidence))
     source_ok, source_evidence = _source_check(root, cfg)
     checks.append(_check("G9-SOURCE-001", "PASS" if source_ok else "FAIL", "source programs and supporting-material list are present", **source_evidence))
