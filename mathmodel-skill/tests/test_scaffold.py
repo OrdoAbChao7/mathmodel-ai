@@ -40,6 +40,16 @@ class ScaffoldTests(unittest.TestCase):
         self.assertEqual(config["orchestration"]["stages"], ["build", "audit", "package"])
         self.assertEqual(config["orchestration"]["max_retries"], 0)
 
+    def test_cli_init_supports_classification_and_statistics(self):
+        for problem_type in ("classification", "statistics"):
+            with self.subTest(problem_type=problem_type):
+                target = self.root / problem_type
+                self.assertEqual(
+                    main(["init", str(target), "--id", f"{problem_type}-001", "--title", "Typed", "--type", problem_type]),
+                    0,
+                )
+                self.assertEqual(load_config(target)["problem_type"], problem_type)
+
     def test_init_never_overwrites_existing_file(self):
         old = self.root / "paper" / "main.tex"
         old.parent.mkdir(parents=True)
