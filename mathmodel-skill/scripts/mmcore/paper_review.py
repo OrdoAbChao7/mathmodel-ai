@@ -70,9 +70,10 @@ def evaluate_writer_package(project: Path, config: dict[str, Any]) -> dict[str, 
         checks.append(_check("G7-SHAPE-001", "FAIL", "writer-package schema_version must be 1"))
     source_artifacts = package.get("source_artifacts")
     required_sources = {"artifacts/problem-map.json", "artifacts/model-architecture.json", "artifacts/frozen-results.json", "artifacts/claim-registry.json", "artifacts/figure-registry.json", "artifacts/decision-ledger.json"}
+    source_set = {item for item in source_artifacts if isinstance(item, str)} if isinstance(source_artifacts, list) else set()
     source_ok = isinstance(source_artifacts, list) and all(isinstance(item, str) and _safe_path(root, item) is not None for item in source_artifacts)
-    if not source_ok or not required_sources <= set(source_artifacts or []):
-        checks.append(_check("G7-SOURCE-001", "FAIL", "writer package must reference all locked evidence sources", missing=sorted(required_sources - set(source_artifacts or []))))
+    if not source_ok or not required_sources <= source_set:
+        checks.append(_check("G7-SOURCE-001", "FAIL", "writer package must reference all locked evidence sources", missing=sorted(required_sources - source_set)))
     else:
         checks.append(_check("G7-SOURCE-001", "PASS", "writer package references locked evidence sources"))
     claims_data, _ = _read_json(root / "artifacts" / "claim-registry.json")
@@ -104,7 +105,8 @@ def evaluate_writer_package(project: Path, config: dict[str, Any]) -> dict[str, 
     figures, figures_ok = _items(figures_data, "figures")
     figure_bindings, figure_bindings_ok = _items(package, "figure_bindings")
     figure_map = {item.get("figure_id"): item for item in figure_bindings if isinstance(item.get("figure_id"), str)}
-    figure_pass = figures_ok and figure_bindings_ok and {item.get("id") for item in figures} == set(figure_map) and all(_safe_path(root, item.get("source")) is not None for item in figure_bindings)
+    figure_ids = {item.get("id") for item in figures if isinstance(item.get("id"), str)}
+    figure_pass = figures_ok and figure_bindings_ok and figure_ids == set(figure_map) and len(figure_ids) == len(figures) and all(_safe_path(root, item.get("source")) is not None for item in figure_bindings)
     checks.append(_check("G7-FIGURE-001", "PASS" if figure_pass else "FAIL", "all figures resolve to canonical sources" if figure_pass else "figure evidence binding is incomplete"))
     citations = package.get("verified_citations")
     citation_pass = isinstance(citations, list) and bool(citations) and all(isinstance(item, dict) and item.get("verified") is True and isinstance(item.get("source"), str) and item.get("source").strip() for item in citations)
@@ -136,7 +138,7 @@ def evaluate_review_registry(project: Path, config: dict[str, Any]) -> dict[str,
     registry, error = _read_json(root / "artifacts" / "review-registry.json")
     reviews, valid = _items(registry, "reviews")
     checks: list[dict[str, Any]] = []
-    types = {item.get("reviewer_type") for item in reviews}
+    types = {item.get("reviewer_type") for item in reviews if isinstance(item.get("reviewer_type"), str)}
     if error or not valid or types != set(_REVIEW_TYPES) or any(item.get("status") != "COMPLETE" or item.get("independent") is not True for item in reviews):
         checks.append(_check("G8-COVERAGE-001", "FAIL", "all independent reviewer types must complete", missing=sorted(set(_REVIEW_TYPES) - types)))
     else:

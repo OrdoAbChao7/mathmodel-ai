@@ -62,6 +62,15 @@ class PaperReviewTests(unittest.TestCase):
         self.assertEqual(report["status"], "FAIL")
         self.assertTrue(any(check["rule"] == "UNSUPPORTED_STRONG_CLAIM" for check in report["checks"]))
 
+    def test_malformed_source_and_figure_ids_return_structured_failure(self):
+        self.install_writer_package()
+        package = json.loads((self.root / "artifacts/writer-package.json").read_text(encoding="utf-8"))
+        package["source_artifacts"].append([])
+        package["figure_bindings"][0]["figure_id"] = []
+        write_json(self.root, "artifacts/writer-package.json", package)
+        report = evaluate_writer_package(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
     def test_abstract_tournament_requires_three_candidates_and_judge(self):
         self.install_writer_package()
         package = json.loads((self.root / "artifacts/writer-package.json").read_text(encoding="utf-8"))
@@ -84,6 +93,11 @@ class PaperReviewTests(unittest.TestCase):
         report = evaluate_review_registry(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
         self.assertTrue(any(check["rule"] == "G8-OPEN-CRITICAL-001" for check in report["checks"]))
+
+    def test_malformed_reviewer_type_returns_structured_failure(self):
+        write_json(self.root, "artifacts/review-registry.json", {"schema_version": 1, "reviews": [{"id": "rev-1", "reviewer_type": [], "status": "COMPLETE", "independent": True, "findings": []}]})
+        report = evaluate_review_registry(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
 
     def test_research_mode_is_not_applicable(self):
         report = evaluate_writer_package(self.root, {**self.cfg, "execution_mode": "research_autonomous"})
