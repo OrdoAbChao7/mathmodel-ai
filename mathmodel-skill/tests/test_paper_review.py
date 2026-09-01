@@ -62,6 +62,23 @@ class PaperReviewTests(unittest.TestCase):
         self.assertEqual(report["status"], "FAIL")
         self.assertTrue(any(check["rule"] == "UNSUPPORTED_STRONG_CLAIM" for check in report["checks"]))
 
+    def test_claim_binding_must_match_registry_support(self):
+        self.install_writer_package()
+        package = json.loads((self.root / "artifacts/writer-package.json").read_text(encoding="utf-8"))
+        package["claim_bindings"][0]["result_ids"] = ["r-other"]
+        write_json(self.root, "artifacts/writer-package.json", package)
+        report = evaluate_writer_package(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_figure_binding_must_use_canonical_registry_file(self):
+        self.install_writer_package()
+        package = json.loads((self.root / "artifacts/writer-package.json").read_text(encoding="utf-8"))
+        (self.root / "figures/other.png").write_bytes(b"other")
+        package["figure_bindings"][0]["source"] = "figures/other.png"
+        write_json(self.root, "artifacts/writer-package.json", package)
+        report = evaluate_writer_package(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
     def test_malformed_source_and_figure_ids_return_structured_failure(self):
         self.install_writer_package()
         package = json.loads((self.root / "artifacts/writer-package.json").read_text(encoding="utf-8"))
@@ -81,13 +98,13 @@ class PaperReviewTests(unittest.TestCase):
 
     def test_review_registry_requires_all_reviewers(self):
         types = ["mathematical", "statistical", "evidence_consistency", "red_team", "citation", "judge_view", "final_judge"]
-        write_json(self.root, "artifacts/review-registry.json", {"schema_version": 1, "reviews": [{"id": f"rev-{item}", "reviewer_type": item, "status": "COMPLETE", "independent": True, "findings": []} for item in types]})
+        write_json(self.root, "artifacts/review-registry.json", {"schema_version": 1, "reviews": [{"id": f"rev-{item}", "reviewer_id": f"person-{item}", "reviewer_type": item, "status": "COMPLETE", "independent": True, "findings": []} for item in types]})
         report = evaluate_review_registry(self.root, self.cfg)
         self.assertEqual(report["status"], "PASS", report)
 
     def test_open_critical_red_team_finding_fails_g8(self):
         types = ["mathematical", "statistical", "evidence_consistency", "red_team", "citation", "judge_view", "final_judge"]
-        reviews = [{"id": f"rev-{item}", "reviewer_type": item, "status": "COMPLETE", "independent": True, "findings": []} for item in types]
+        reviews = [{"id": f"rev-{item}", "reviewer_id": f"person-{item}", "reviewer_type": item, "status": "COMPLETE", "independent": True, "findings": []} for item in types]
         reviews[3]["findings"] = [{"id": "REV-1", "severity": "CRITICAL", "status": "OPEN"}]
         write_json(self.root, "artifacts/review-registry.json", {"schema_version": 1, "reviews": reviews})
         report = evaluate_review_registry(self.root, self.cfg)
@@ -96,6 +113,21 @@ class PaperReviewTests(unittest.TestCase):
 
     def test_malformed_reviewer_type_returns_structured_failure(self):
         write_json(self.root, "artifacts/review-registry.json", {"schema_version": 1, "reviews": [{"id": "rev-1", "reviewer_type": [], "status": "COMPLETE", "independent": True, "findings": []}]})
+        report = evaluate_review_registry(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_duplicate_review_identity_returns_structured_failure(self):
+        types = ["mathematical", "statistical", "evidence_consistency", "red_team", "citation", "judge_view", "final_judge"]
+        reviews = [{"id": "same", "reviewer_id": "same-person", "reviewer_type": item, "status": "COMPLETE", "independent": True, "findings": []} for item in types]
+        write_json(self.root, "artifacts/review-registry.json", {"schema_version": 1, "reviews": reviews})
+        report = evaluate_review_registry(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_malformed_finding_returns_structured_failure(self):
+        types = ["mathematical", "statistical", "evidence_consistency", "red_team", "citation", "judge_view", "final_judge"]
+        reviews = [{"id": f"rev-{item}", "reviewer_id": f"person-{item}", "reviewer_type": item, "status": "COMPLETE", "independent": True, "findings": []} for item in types]
+        reviews[3]["findings"] = [{"id": "bad", "severity": [], "status": "OPEN"}]
+        write_json(self.root, "artifacts/review-registry.json", {"schema_version": 1, "reviews": reviews})
         report = evaluate_review_registry(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
 

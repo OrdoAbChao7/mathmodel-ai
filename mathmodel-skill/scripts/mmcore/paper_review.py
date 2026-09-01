@@ -54,6 +54,10 @@ def _formal(config: dict[str, Any]) -> tuple[str, str | None]:
     return ("NOT_APPLICABLE", mode) if mode == "research_autonomous" else ("FORMAL", mode)
 
 
+def _unique_text(values: list[Any]) -> bool:
+    return all(isinstance(item, str) and item.strip() for item in values) and len(values) == len(set(values))
+
+
 def evaluate_writer_package(project: Path, config: dict[str, Any]) -> dict[str, Any]:
     """Check that paper writing is a translation of current evidence only."""
     mode_status, mode = _formal(config)
@@ -94,7 +98,11 @@ def evaluate_writer_package(project: Path, config: dict[str, Any]) -> dict[str, 
             binding = next(item for item in bindings if item.get("claim_id") == claim.get("id"))
             body = claim.get("body", "") if isinstance(claim.get("body"), str) else ""
             result_refs, validation_refs = binding.get("result_ids"), binding.get("validation_ids")
-            valid_refs = isinstance(result_refs, list) and bool(result_refs) and all(item in result_ids for item in result_refs) and isinstance(validation_refs, list) and bool(validation_refs) and all(item in validation_ids for item in validation_refs)
+            valid_refs = (isinstance(result_refs, list) and bool(result_refs) and all(isinstance(item, str) and item in result_ids for item in result_refs)
+                          and isinstance(validation_refs, list) and bool(validation_refs) and all(isinstance(item, str) and item in validation_ids for item in validation_refs))
+            registry_result_refs = claim.get("result_ids")
+            registry_validation_refs = claim.get("validation_ids")
+            valid_refs = valid_refs and isinstance(registry_result_refs, list) and isinstance(registry_validation_refs, list) and set(result_refs) == {item for item in registry_result_refs if isinstance(item, str)} and set(validation_refs) == {item for item in registry_validation_refs if isinstance(item, str)} and len({item for item in registry_result_refs if isinstance(item, str)}) == len(registry_result_refs) and len({item for item in registry_validation_refs if isinstance(item, str)}) == len(registry_validation_refs)
             comparison_required = any(term in body.lower() for term in _COMPARISON_TERMS)
             comparison_ok = not comparison_required or (isinstance(binding.get("comparison_ids"), list) and bool(binding.get("comparison_ids")))
             if any(term in body.lower() for term in _STRONG_TERMS) and (not valid_refs or not comparison_ok):
@@ -105,8 +113,9 @@ def evaluate_writer_package(project: Path, config: dict[str, Any]) -> dict[str, 
     figures, figures_ok = _items(figures_data, "figures")
     figure_bindings, figure_bindings_ok = _items(package, "figure_bindings")
     figure_map = {item.get("figure_id"): item for item in figure_bindings if isinstance(item.get("figure_id"), str)}
+    canonical_files = {item.get("id"): item.get("file") for item in figures if isinstance(item.get("id"), str)}
     figure_ids = {item.get("id") for item in figures if isinstance(item.get("id"), str)}
-    figure_pass = figures_ok and figure_bindings_ok and figure_ids == set(figure_map) and len(figure_ids) == len(figures) and all(_safe_path(root, item.get("source")) is not None for item in figure_bindings)
+    figure_pass = figures_ok and figure_bindings_ok and figure_ids == set(figure_map) and len(figure_ids) == len(figures) and all(isinstance(item.get("source"), str) and item.get("source") == canonical_files.get(item.get("figure_id")) and _safe_path(root, item.get("source")) is not None for item in figure_bindings)
     checks.append(_check("G7-FIGURE-001", "PASS" if figure_pass else "FAIL", "all figures resolve to canonical sources" if figure_pass else "figure evidence binding is incomplete"))
     citations = package.get("verified_citations")
     citation_pass = isinstance(citations, list) and bool(citations) and all(isinstance(item, dict) and item.get("verified") is True and isinstance(item.get("source"), str) and item.get("source").strip() for item in citations)
@@ -139,14 +148,21 @@ def evaluate_review_registry(project: Path, config: dict[str, Any]) -> dict[str,
     reviews, valid = _items(registry, "reviews")
     checks: list[dict[str, Any]] = []
     types = {item.get("reviewer_type") for item in reviews if isinstance(item.get("reviewer_type"), str)}
-    if error or not valid or types != set(_REVIEW_TYPES) or any(item.get("status") != "COMPLETE" or item.get("independent") is not True for item in reviews):
+    review_ids = [item.get("id") for item in reviews]
+    reviewer_ids = [item.get("reviewer_id") for item in reviews]
+    identity_ok = _unique_text(review_ids) and _unique_text(reviewer_ids)
+    if error or not valid or types != set(_REVIEW_TYPES) or not identity_ok or any(item.get("status") != "COMPLETE" or item.get("independent") is not True for item in reviews):
         checks.append(_check("G8-COVERAGE-001", "FAIL", "all independent reviewer types must complete", missing=sorted(set(_REVIEW_TYPES) - types)))
     else:
         checks.append(_check("G8-COVERAGE-001", "PASS", "all independent reviewer types completed"))
     open_critical = []
     for review in reviews:
         findings = review.get("findings")
-        if not isinstance(findings, list) or any(not isinstance(item, dict) for item in findings):
+        def valid_finding(item: Any) -> bool:
+            return (isinstance(item, dict) and isinstance(item.get("id"), str) and bool(item.get("id"))
+                    and isinstance(item.get("severity"), str) and item.get("severity") in {"CRITICAL", "IMPORTANT", "MINOR", "INFO"}
+                    and isinstance(item.get("status"), str) and item.get("status") in {"OPEN", "CLOSED", "RESOLVED", "ACCEPTED"})
+        if not isinstance(findings, list) or any(not valid_finding(item) for item in findings):
             checks.append(_check("G8-SHAPE-001", "FAIL", "review findings must be an array of objects", review_id=review.get("id")))
             continue
         open_critical.extend(item for item in findings if item.get("severity") == "CRITICAL" and item.get("status") == "OPEN")
