@@ -1,0 +1,953 @@
+{
+  "baseline": {
+    "metrics": {
+      "baseline_quality": 0.55,
+      "candidate_diversity": 0.4000000000000001,
+      "citation_errors": 0.0,
+      "critical_reviewer_findings": 0.0,
+      "cross_question_inconsistencies": 0.0,
+      "data_leakage_incidents": 0.0,
+      "human_intervention_count": 0.0,
+      "judge_view_clarity": 0.55,
+      "model_appropriateness": 0.55,
+      "paper_result_mismatch": 0.0,
+      "problem_interpretation_accuracy": 0.55,
+      "reproducibility_failures": 0.0,
+      "runtime": 1.0,
+      "token_context_cost": 100.0,
+      "unsupported_claim_count": 0.0,
+      "validation_completeness": 0.55
+    },
+    "records": 12
+  },
+  "candidate": {
+    "metrics": {
+      "baseline_quality": 0.7799999999999999,
+      "candidate_diversity": 0.7200000000000001,
+      "citation_errors": 0.0,
+      "critical_reviewer_findings": 0.0,
+      "cross_question_inconsistencies": 0.0,
+      "data_leakage_incidents": 0.0,
+      "human_intervention_count": 0.0,
+      "judge_view_clarity": 0.7799999999999999,
+      "model_appropriateness": 0.7799999999999999,
+      "paper_result_mismatch": 0.0,
+      "problem_interpretation_accuracy": 0.7799999999999999,
+      "reproducibility_failures": 0.0,
+      "runtime": 1.0,
+      "token_context_cost": 100.0,
+      "unsupported_claim_count": 0.0,
+      "validation_completeness": 0.7799999999999999
+    },
+    "records": 12
+  },
+  "cases": [
+    {
+      "case_id": "fixture-forecasting",
+      "problem_type": "forecasting",
+      "repeats": [
+        {
+          "baseline": {
+            "case_id": "fixture-forecasting",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.55,
+              "candidate_diversity": 0.4,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.55,
+              "model_appropriateness": 0.55,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.55,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.55
+            },
+            "repeat": 0,
+            "status": "PASS"
+          },
+          "candidate": {
+            "case_id": "fixture-forecasting",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.78,
+              "candidate_diversity": 0.72,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.78,
+              "model_appropriateness": 0.78,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.78,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.78
+            },
+            "repeat": 0,
+            "status": "PASS"
+          },
+          "repeat": 0
+        },
+        {
+          "baseline": {
+            "case_id": "fixture-forecasting",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.55,
+              "candidate_diversity": 0.4,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.55,
+              "model_appropriateness": 0.55,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.55,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.55
+            },
+            "repeat": 1,
+            "status": "PASS"
+          },
+          "candidate": {
+            "case_id": "fixture-forecasting",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.78,
+              "candidate_diversity": 0.72,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.78,
+              "model_appropriateness": 0.78,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.78,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.78
+            },
+            "repeat": 1,
+            "status": "PASS"
+          },
+          "repeat": 1
+        },
+        {
+          "baseline": {
+            "case_id": "fixture-forecasting",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.55,
+              "candidate_diversity": 0.4,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.55,
+              "model_appropriateness": 0.55,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.55,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.55
+            },
+            "repeat": 2,
+            "status": "PASS"
+          },
+          "candidate": {
+            "case_id": "fixture-forecasting",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.78,
+              "candidate_diversity": 0.72,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.78,
+              "model_appropriateness": 0.78,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.78,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.78
+            },
+            "repeat": 2,
+            "status": "PASS"
+          },
+          "repeat": 2
+        }
+      ]
+    },
+    {
+      "case_id": "fixture-optimization",
+      "problem_type": "optimization",
+      "repeats": [
+        {
+          "baseline": {
+            "case_id": "fixture-optimization",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.55,
+              "candidate_diversity": 0.4,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.55,
+              "model_appropriateness": 0.55,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.55,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.55
+            },
+            "repeat": 0,
+            "status": "PASS"
+          },
+          "candidate": {
+            "case_id": "fixture-optimization",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.78,
+              "candidate_diversity": 0.72,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.78,
+              "model_appropriateness": 0.78,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.78,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.78
+            },
+            "repeat": 0,
+            "status": "PASS"
+          },
+          "repeat": 0
+        },
+        {
+          "baseline": {
+            "case_id": "fixture-optimization",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.55,
+              "candidate_diversity": 0.4,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.55,
+              "model_appropriateness": 0.55,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.55,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.55
+            },
+            "repeat": 1,
+            "status": "PASS"
+          },
+          "candidate": {
+            "case_id": "fixture-optimization",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.78,
+              "candidate_diversity": 0.72,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.78,
+              "model_appropriateness": 0.78,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.78,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.78
+            },
+            "repeat": 1,
+            "status": "PASS"
+          },
+          "repeat": 1
+        },
+        {
+          "baseline": {
+            "case_id": "fixture-optimization",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.55,
+              "candidate_diversity": 0.4,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.55,
+              "model_appropriateness": 0.55,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.55,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.55
+            },
+            "repeat": 2,
+            "status": "PASS"
+          },
+          "candidate": {
+            "case_id": "fixture-optimization",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.78,
+              "candidate_diversity": 0.72,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.78,
+              "model_appropriateness": 0.78,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.78,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.78
+            },
+            "repeat": 2,
+            "status": "PASS"
+          },
+          "repeat": 2
+        }
+      ]
+    },
+    {
+      "case_id": "fixture-evaluation",
+      "problem_type": "evaluation",
+      "repeats": [
+        {
+          "baseline": {
+            "case_id": "fixture-evaluation",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.55,
+              "candidate_diversity": 0.4,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.55,
+              "model_appropriateness": 0.55,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.55,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.55
+            },
+            "repeat": 0,
+            "status": "PASS"
+          },
+          "candidate": {
+            "case_id": "fixture-evaluation",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.78,
+              "candidate_diversity": 0.72,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.78,
+              "model_appropriateness": 0.78,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.78,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.78
+            },
+            "repeat": 0,
+            "status": "PASS"
+          },
+          "repeat": 0
+        },
+        {
+          "baseline": {
+            "case_id": "fixture-evaluation",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.55,
+              "candidate_diversity": 0.4,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.55,
+              "model_appropriateness": 0.55,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.55,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.55
+            },
+            "repeat": 1,
+            "status": "PASS"
+          },
+          "candidate": {
+            "case_id": "fixture-evaluation",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.78,
+              "candidate_diversity": 0.72,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.78,
+              "model_appropriateness": 0.78,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.78,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.78
+            },
+            "repeat": 1,
+            "status": "PASS"
+          },
+          "repeat": 1
+        },
+        {
+          "baseline": {
+            "case_id": "fixture-evaluation",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.55,
+              "candidate_diversity": 0.4,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.55,
+              "model_appropriateness": 0.55,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.55,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.55
+            },
+            "repeat": 2,
+            "status": "PASS"
+          },
+          "candidate": {
+            "case_id": "fixture-evaluation",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.78,
+              "candidate_diversity": 0.72,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.78,
+              "model_appropriateness": 0.78,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.78,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.78
+            },
+            "repeat": 2,
+            "status": "PASS"
+          },
+          "repeat": 2
+        }
+      ]
+    },
+    {
+      "case_id": "training-001",
+      "problem_type": "optimization",
+      "repeats": [
+        {
+          "baseline": {
+            "case_id": "training-001",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.55,
+              "candidate_diversity": 0.4,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.55,
+              "model_appropriateness": 0.55,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.55,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.55
+            },
+            "repeat": 0,
+            "status": "PASS"
+          },
+          "candidate": {
+            "case_id": "training-001",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.78,
+              "candidate_diversity": 0.72,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.78,
+              "model_appropriateness": 0.78,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.78,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.78
+            },
+            "repeat": 0,
+            "status": "PASS"
+          },
+          "repeat": 0
+        },
+        {
+          "baseline": {
+            "case_id": "training-001",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.55,
+              "candidate_diversity": 0.4,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.55,
+              "model_appropriateness": 0.55,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.55,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.55
+            },
+            "repeat": 1,
+            "status": "PASS"
+          },
+          "candidate": {
+            "case_id": "training-001",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.78,
+              "candidate_diversity": 0.72,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.78,
+              "model_appropriateness": 0.78,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.78,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.78
+            },
+            "repeat": 1,
+            "status": "PASS"
+          },
+          "repeat": 1
+        },
+        {
+          "baseline": {
+            "case_id": "training-001",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.55,
+              "candidate_diversity": 0.4,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.55,
+              "model_appropriateness": 0.55,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.55,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.55
+            },
+            "repeat": 2,
+            "status": "PASS"
+          },
+          "candidate": {
+            "case_id": "training-001",
+            "control": {
+              "budget": 100,
+              "evidence": "repository-fixtures",
+              "model": "fixture-v1",
+              "provider": "deterministic-fixture"
+            },
+            "metrics": {
+              "baseline_quality": 0.78,
+              "candidate_diversity": 0.72,
+              "citation_errors": 0.0,
+              "critical_reviewer_findings": 0.0,
+              "cross_question_inconsistencies": 0.0,
+              "data_leakage_incidents": 0.0,
+              "human_intervention_count": 0.0,
+              "judge_view_clarity": 0.78,
+              "model_appropriateness": 0.78,
+              "paper_result_mismatch": 0.0,
+              "problem_interpretation_accuracy": 0.78,
+              "reproducibility_failures": 0.0,
+              "runtime": 1.0,
+              "token_context_cost": 100.0,
+              "unsupported_claim_count": 0.0,
+              "validation_completeness": 0.78
+            },
+            "repeat": 2,
+            "status": "PASS"
+          },
+          "repeat": 2
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "baseline_quality": {
+      "baseline": 0.55,
+      "candidate": 0.7799999999999999,
+      "delta": 0.22999999999999987,
+      "direction": "higher",
+      "improvement": 0.22999999999999987,
+      "relative_delta": 0.41818181818181793
+    },
+    "candidate_diversity": {
+      "baseline": 0.4000000000000001,
+      "candidate": 0.7200000000000001,
+      "delta": 0.32,
+      "direction": "higher",
+      "improvement": 0.32,
+      "relative_delta": 0.7999999999999998
+    },
+    "citation_errors": {
+      "baseline": 0.0,
+      "candidate": 0.0,
+      "delta": 0.0,
+      "direction": "lower",
+      "improvement": 0.0,
+      "relative_delta": 0.0
+    },
+    "critical_reviewer_findings": {
+      "baseline": 0.0,
+      "candidate": 0.0,
+      "delta": 0.0,
+      "direction": "lower",
+      "improvement": 0.0,
+      "relative_delta": 0.0
+    },
+    "cross_question_inconsistencies": {
+      "baseline": 0.0,
+      "candidate": 0.0,
+      "delta": 0.0,
+      "direction": "lower",
+      "improvement": 0.0,
+      "relative_delta": 0.0
+    },
+    "data_leakage_incidents": {
+      "baseline": 0.0,
+      "candidate": 0.0,
+      "delta": 0.0,
+      "direction": "lower",
+      "improvement": 0.0,
+      "relative_delta": 0.0
+    },
+    "human_intervention_count": {
+      "baseline": 0.0,
+      "candidate": 0.0,
+      "delta": 0.0,
+      "direction": "lower",
+      "improvement": 0.0,
+      "relative_delta": 0.0
+    },
+    "judge_view_clarity": {
+      "baseline": 0.55,
+      "candidate": 0.7799999999999999,
+      "delta": 0.22999999999999987,
+      "direction": "higher",
+      "improvement": 0.22999999999999987,
+      "relative_delta": 0.41818181818181793
+    },
+    "model_appropriateness": {
+      "baseline": 0.55,
+      "candidate": 0.7799999999999999,
+      "delta": 0.22999999999999987,
+      "direction": "higher",
+      "improvement": 0.22999999999999987,
+      "relative_delta": 0.41818181818181793
+    },
+    "paper_result_mismatch": {
+      "baseline": 0.0,
+      "candidate": 0.0,
+      "delta": 0.0,
+      "direction": "lower",
+      "improvement": 0.0,
+      "relative_delta": 0.0
+    },
+    "problem_interpretation_accuracy": {
+      "baseline": 0.55,
+      "candidate": 0.7799999999999999,
+      "delta": 0.22999999999999987,
+      "direction": "higher",
+      "improvement": 0.22999999999999987,
+      "relative_delta": 0.41818181818181793
+    },
+    "reproducibility_failures": {
+      "baseline": 0.0,
+      "candidate": 0.0,
+      "delta": 0.0,
+      "direction": "lower",
+      "improvement": 0.0,
+      "relative_delta": 0.0
+    },
+    "runtime": {
+      "baseline": 1.0,
+      "candidate": 1.0,
+      "delta": 0.0,
+      "direction": "lower",
+      "improvement": 0.0,
+      "relative_delta": 0.0
+    },
+    "token_context_cost": {
+      "baseline": 100.0,
+      "candidate": 100.0,
+      "delta": 0.0,
+      "direction": "lower",
+      "improvement": 0.0,
+      "relative_delta": 0.0
+    },
+    "unsupported_claim_count": {
+      "baseline": 0.0,
+      "candidate": 0.0,
+      "delta": 0.0,
+      "direction": "lower",
+      "improvement": 0.0,
+      "relative_delta": 0.0
+    },
+    "validation_completeness": {
+      "baseline": 0.55,
+      "candidate": 0.7799999999999999,
+      "delta": 0.22999999999999987,
+      "direction": "higher",
+      "improvement": 0.22999999999999987,
+      "relative_delta": 0.41818181818181793
+    }
+  },
+  "controls": {
+    "paired": true,
+    "repeats": 3,
+    "same_case": true
+  },
+  "promotion": {
+    "hard_regressions": [],
+    "meaningful_improvements": [
+      "baseline_quality",
+      "candidate_diversity",
+      "judge_view_clarity",
+      "model_appropriateness",
+      "problem_interpretation_accuracy",
+      "validation_completeness"
+    ],
+    "status": "DEFAULT",
+    "threshold": 0.01
+  },
+  "registry": "benchmarks/cases/registry.json",
+  "run_config": "benchmarks/configs/local-fixture-benchmark.json",
+  "status": "PASS"
+}
