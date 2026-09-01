@@ -164,6 +164,9 @@ def _conflict_checks(project: Path, computed: list[dict[str, Any]], candidate_id
         if not isinstance(supplied_item, dict) or supplied_item.get("dimension") != conflict["dimension"] or supplied_item.get("candidate_ids") != conflict["candidate_ids"] or supplied_item.get("severity") != conflict["severity"]:
             checks.append(_check("G1-CONFLICT-INTEGRITY-001", "FAIL", "conflict evidence does not match locally recomputed metadata", conflict_id=conflict["id"]))
             continue
+        if not isinstance(supplied_item.get("description"), str) or not supplied_item["description"].strip():
+            checks.append(_check("G1-CONFLICT-INTEGRITY-001", "FAIL", "conflict evidence is missing a description", conflict_id=conflict["id"]))
+            continue
         if supplied_item.get("resolution_status") == "OPEN":
             checks.append(_check("G1-CONFLICT-OPEN-001", "BLOCKED_INTERPRETATION_CONFLICT", "major interpretation conflict remains open", conflict_id=conflict["id"]))
         elif supplied_item.get("resolution_status") != "RESOLVED":

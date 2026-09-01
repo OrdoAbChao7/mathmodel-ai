@@ -160,6 +160,18 @@ class InterpretationTests(unittest.TestCase):
         self.assertEqual(report["status"], "FAIL")
         self.assertTrue(any(check["rule"] == "G1-ARTIFACT-METADATA-001" for check in report["checks"]))
 
+    def test_conflict_record_requires_description(self):
+        self.install_valid_evidence(second_objective="maximize service level")
+        write_json(self.root, "artifacts/interpretation-conflicts.json", {
+            "schema_version": 1,
+            "generated_by": "local_interpretation_engine",
+            "candidate_ids": ["I-A", "I-B"],
+            "conflicts": [{"id": "CONFLICT-OBJECTIVES-I-A-I-B", "dimension": "objectives", "severity": "MAJOR", "candidate_ids": ["I-A", "I-B"], "resolution_status": "RESOLVED"}],
+        })
+        report = evaluate_g1(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertTrue(any(check["rule"] == "G1-CONFLICT-INTEGRITY-001" for check in report["checks"]))
+
     def test_missing_h1_artifact_link_blocks_gate(self):
         self.install_valid_evidence(reviewed_artifacts=["artifacts/problem-map.json"])
         report = evaluate_g1(self.root, self.cfg)
