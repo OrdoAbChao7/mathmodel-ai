@@ -32,6 +32,51 @@
       "project": "traning1",
       "source": "repository training case",
       "enabled": true
+    },
+    {
+      "case_id": "cumcm-2025-a",
+      "title": "CUMCM 2025 Problem A",
+      "problem_type": "optimization",
+      "source": "https://github.com/CosmicLinks/cumcm-problems/tree/549a57d67332d439ed6fab720ef0431314aee2d6/cumcm2025/cumcm2025a",
+      "source_commit": "549a57d67332d439ed6fab720ef0431314aee2d6",
+      "enabled": false,
+      "availability": "external_case_material_not_vendored"
+    },
+    {
+      "case_id": "cumcm-2025-b",
+      "title": "CUMCM 2025 Problem B",
+      "problem_type": "mechanism",
+      "source": "https://github.com/CosmicLinks/cumcm-problems/tree/549a57d67332d439ed6fab720ef0431314aee2d6/cumcm2025/cumcm2025b",
+      "source_commit": "549a57d67332d439ed6fab720ef0431314aee2d6",
+      "enabled": false,
+      "availability": "external_case_material_not_vendored"
+    },
+    {
+      "case_id": "cumcm-2025-c",
+      "title": "CUMCM 2025 Problem C",
+      "problem_type": "statistics",
+      "source": "https://github.com/CosmicLinks/cumcm-problems/tree/549a57d67332d439ed6fab720ef0431314aee2d6/cumcm2025/cumcm2025c",
+      "source_commit": "549a57d67332d439ed6fab720ef0431314aee2d6",
+      "enabled": false,
+      "availability": "external_case_material_not_vendored"
+    },
+    {
+      "case_id": "cumcm-2025-d",
+      "title": "CUMCM 2025 Problem D",
+      "problem_type": "evaluation",
+      "source": "https://github.com/CosmicLinks/cumcm-problems/tree/549a57d67332d439ed6fab720ef0431314aee2d6/cumcm2025/cumcm2025d",
+      "source_commit": "549a57d67332d439ed6fab720ef0431314aee2d6",
+      "enabled": false,
+      "availability": "external_case_material_not_vendored"
+    },
+    {
+      "case_id": "cumcm-2025-e",
+      "title": "CUMCM 2025 Problem E",
+      "problem_type": "forecasting",
+      "source": "https://github.com/CosmicLinks/cumcm-problems/tree/549a57d67332d439ed6fab720ef0431314aee2d6/cumcm2025/cumcm2025e",
+      "source_commit": "549a57d67332d439ed6fab720ef0431314aee2d6",
+      "enabled": false,
+      "availability": "external_case_material_not_vendored"
     }
   ]
 }
