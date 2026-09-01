@@ -24,6 +24,8 @@ class PaperReviewTests(unittest.TestCase):
         self.cfg = {"problem_type": "optimization", "execution_mode": "competition_assisted"}
         (self.root / "figures").mkdir()
         (self.root / "figures/result.png").write_bytes(b"png")
+        (self.root / "references").mkdir()
+        (self.root / "references/ref1.txt").write_text("citation evidence", encoding="utf-8")
         write_json(self.root, "artifacts/claim-registry.json", {"claims": [{"id": "c1", "body": "方法达到最优排班", "result_ids": ["r1"], "validation_ids": ["v1"]}]})
         write_json(self.root, "artifacts/result-registry.json", {"results": [{"id": "r1"}]})
         write_json(self.root, "artifacts/validation.json", {"validations": [{"id": "v1", "status": "PASS"}]})
@@ -40,7 +42,7 @@ class PaperReviewTests(unittest.TestCase):
             "source_artifacts": ["artifacts/problem-map.json", "artifacts/model-architecture.json", "artifacts/frozen-results.json", "artifacts/claim-registry.json", "artifacts/figure-registry.json", "artifacts/decision-ledger.json"],
             "claim_bindings": [{"claim_id": "c1", "result_ids": ["r1"], "validation_ids": ["v1"]}],
             "figure_bindings": [{"figure_id": "f1", "source": "figures/result.png"}],
-            "verified_citations": [{"id": "ref1", "verified": True, "source": "https://example.org/paper"}],
+            "verified_citations": [{"id": "ref1", "verified": True, "source": "https://example.org/paper", "evidence_source": "references/ref1.txt"}],
             "abstract_candidates": [{"id": "a1", "text": "解决排班问题，采用优化模型。"}, {"id": "a2", "text": "采用约束模型解决排班问题。"}, {"id": "a3", "text": "模型给出可验证排班结果。"}],
             "final_abstract_id": "a2",
             "judge_view": {"status": "PASS", "answers": {"problem": "排班", "method": "优化模型", "innovation": "约束设计", "result": "排班结果", "trust": "验证", "risk": "数据范围"}},
@@ -66,6 +68,30 @@ class PaperReviewTests(unittest.TestCase):
         self.install_writer_package()
         package = json.loads((self.root / "artifacts/writer-package.json").read_text(encoding="utf-8"))
         package["claim_bindings"][0]["result_ids"] = ["r-other"]
+        write_json(self.root, "artifacts/writer-package.json", package)
+        report = evaluate_writer_package(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_comparison_claim_requires_registered_comparison(self):
+        self.install_writer_package()
+        claims = json.loads((self.root / "artifacts/claim-registry.json").read_text(encoding="utf-8"))
+        claims["claims"][0]["body"] = "方法优于基线"
+        write_json(self.root, "artifacts/claim-registry.json", claims)
+        report = evaluate_writer_package(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_unverified_citation_without_local_evidence_fails_g7(self):
+        self.install_writer_package()
+        package = json.loads((self.root / "artifacts/writer-package.json").read_text(encoding="utf-8"))
+        package["verified_citations"][0].pop("evidence_source")
+        write_json(self.root, "artifacts/writer-package.json", package)
+        report = evaluate_writer_package(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_empty_abstract_text_fails_g7(self):
+        self.install_writer_package()
+        package = json.loads((self.root / "artifacts/writer-package.json").read_text(encoding="utf-8"))
+        package["abstract_candidates"][0]["text"] = ""
         write_json(self.root, "artifacts/writer-package.json", package)
         report = evaluate_writer_package(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
@@ -113,6 +139,13 @@ class PaperReviewTests(unittest.TestCase):
 
     def test_malformed_reviewer_type_returns_structured_failure(self):
         write_json(self.root, "artifacts/review-registry.json", {"schema_version": 1, "reviews": [{"id": "rev-1", "reviewer_type": [], "status": "COMPLETE", "independent": True, "findings": []}]})
+        report = evaluate_review_registry(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_unknown_review_schema_returns_structured_failure(self):
+        types = ["mathematical", "statistical", "evidence_consistency", "red_team", "citation", "judge_view", "final_judge"]
+        reviews = [{"id": f"rev-{item}", "reviewer_id": f"person-{item}", "reviewer_type": item, "status": "COMPLETE", "independent": True, "findings": []} for item in types]
+        write_json(self.root, "artifacts/review-registry.json", {"schema_version": 999, "reviews": reviews})
         report = evaluate_review_registry(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
 

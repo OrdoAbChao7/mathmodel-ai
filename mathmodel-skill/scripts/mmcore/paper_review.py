@@ -104,7 +104,9 @@ def evaluate_writer_package(project: Path, config: dict[str, Any]) -> dict[str, 
             registry_validation_refs = claim.get("validation_ids")
             valid_refs = valid_refs and isinstance(registry_result_refs, list) and isinstance(registry_validation_refs, list) and set(result_refs) == {item for item in registry_result_refs if isinstance(item, str)} and set(validation_refs) == {item for item in registry_validation_refs if isinstance(item, str)} and len({item for item in registry_result_refs if isinstance(item, str)}) == len(registry_result_refs) and len({item for item in registry_validation_refs if isinstance(item, str)}) == len(registry_validation_refs)
             comparison_required = any(term in body.lower() for term in _COMPARISON_TERMS)
-            comparison_ok = not comparison_required or (isinstance(binding.get("comparison_ids"), list) and bool(binding.get("comparison_ids")))
+            comparisons = package.get("comparison_bindings")
+            comparison_ids = {item.get("id") for item in comparisons if isinstance(item, dict) and isinstance(item.get("id"), str) and item.get("id")} if isinstance(comparisons, list) else set()
+            comparison_ok = not comparison_required or (isinstance(binding.get("comparison_ids"), list) and bool(binding.get("comparison_ids")) and all(isinstance(item, str) and item in comparison_ids for item in binding.get("comparison_ids")))
             if any(term in body.lower() for term in _STRONG_TERMS) and (not valid_refs or not comparison_ok):
                 checks.append(_check("UNSUPPORTED_STRONG_CLAIM", "FAIL", "strong claim lacks required result/validation/comparison binding", claim_id=claim.get("id")))
         if not any(item["rule"] == "UNSUPPORTED_STRONG_CLAIM" and item["status"] == "FAIL" for item in checks):
@@ -118,14 +120,14 @@ def evaluate_writer_package(project: Path, config: dict[str, Any]) -> dict[str, 
     figure_pass = figures_ok and figure_bindings_ok and figure_ids == set(figure_map) and len(figure_ids) == len(figures) and all(isinstance(item.get("source"), str) and item.get("source") == canonical_files.get(item.get("figure_id")) and _safe_path(root, item.get("source")) is not None for item in figure_bindings)
     checks.append(_check("G7-FIGURE-001", "PASS" if figure_pass else "FAIL", "all figures resolve to canonical sources" if figure_pass else "figure evidence binding is incomplete"))
     citations = package.get("verified_citations")
-    citation_pass = isinstance(citations, list) and bool(citations) and all(isinstance(item, dict) and item.get("verified") is True and isinstance(item.get("source"), str) and item.get("source").strip() for item in citations)
+    citation_pass = isinstance(citations, list) and bool(citations) and all(isinstance(item, dict) and isinstance(item.get("id"), str) and item.get("id").strip() and item.get("verified") is True and isinstance(item.get("source"), str) and item.get("source").strip() and _safe_path(root, item.get("evidence_source")) is not None for item in citations)
     checks.append(_check("G7-CITATION-001", "PASS" if citation_pass else "FAIL", "citations are verified" if citation_pass else "verified citations are missing or invalid"))
     candidates, candidates_ok = _items(package, "abstract_candidates")
     candidate_ids = {item.get("id") for item in candidates if isinstance(item.get("id"), str)}
     final_id = package.get("final_abstract_id")
     judge = package.get("judge_view")
     judge_pass = isinstance(judge, dict) and judge.get("status") == "PASS" and isinstance(judge.get("answers"), dict) and all(isinstance(judge["answers"].get(key), str) and judge["answers"].get(key).strip() for key in _JUDGE_ANSWERS)
-    abstract_pass = candidates_ok and len(candidates) >= 3 and len(candidate_ids) == len(candidates) and isinstance(final_id, str) and final_id in candidate_ids and judge_pass
+    abstract_pass = candidates_ok and len(candidates) >= 3 and len(candidate_ids) == len(candidates) and all(isinstance(item.get("text"), str) and item.get("text").strip() for item in candidates) and isinstance(final_id, str) and final_id in candidate_ids and judge_pass
     checks.append(_check("G7-ABSTRACT-001", "PASS" if abstract_pass else "FAIL", "abstract tournament and judge-view test passed" if abstract_pass else "abstract tournament or judge-view test is incomplete"))
     frozen, frozen_error = _read_json(root / "artifacts/frozen-results.json")
     frozen_items, frozen_ok = _items(frozen, "results")
@@ -147,6 +149,8 @@ def evaluate_review_registry(project: Path, config: dict[str, Any]) -> dict[str,
     registry, error = _read_json(root / "artifacts" / "review-registry.json")
     reviews, valid = _items(registry, "reviews")
     checks: list[dict[str, Any]] = []
+    if not error and registry.get("schema_version") != 1:
+        checks.append(_check("G8-SHAPE-001", "FAIL", "review-registry schema_version must be 1"))
     types = {item.get("reviewer_type") for item in reviews if isinstance(item.get("reviewer_type"), str)}
     review_ids = [item.get("id") for item in reviews]
     reviewer_ids = [item.get("reviewer_id") for item in reviews]
