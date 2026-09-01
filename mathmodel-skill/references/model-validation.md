@@ -11,5 +11,6 @@ Run common checks first: verify units and signs, test boundary and hand-calculat
 | Mechanism | Dimensional consistency, boundary behavior, parameter identifiability, and calibration or external comparison |
 | Classification | Stratified split, leakage check, baseline, threshold policy, class-wise diagnostics, and metric recomputation |
 | Statistics | Sampling assumptions, uncertainty interval, baseline, missing-data policy, specification sensitivity, and metric recomputation |
+| Hybrid | Component-specific checks, explicit dependency graph, uncertainty transfer, end-to-end baseline, and interface/boundary stress test |
 
 Write each check to `validation.json` with its input IDs, metric, threshold, observed result, and interpretation. Reject a conclusion when a required check fails; report the failure and restrict the claim instead.

@@ -42,7 +42,7 @@ REFERENCE_CONTENT = {
     "references/workflow.md": ("inspect", "build", "audit"),
     "references/evidence-contracts.md": ("result-registry.json", "validation.json"),
     "references/paper-architecture.md": ("mm:body-start", "mm:appendix-end"),
-    "references/model-validation.md": ("Forecasting", "Optimization", "Evaluation"),
+    "references/model-validation.md": ("Forecasting", "Optimization", "Evaluation", "Hybrid"),
     "references/quality-gates.md": ("release blockers", "manual review"),
     "references/figure-system.md": ("data understanding", "validation"),
     "references/forecasting.md": ("rolling-origin", "MAE"),
