@@ -5,6 +5,7 @@ import unittest
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
+from unittest.mock import patch
 
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
@@ -76,6 +77,14 @@ class ConfigTests(unittest.TestCase):
 
     def test_main_help_returns_zero(self):
         self.assertEqual(main(["--help"]), 0)
+
+    def test_run_command_routes_to_orchestrator(self):
+        write_json(self.root / "mathmodel.json", valid_config())
+        output = StringIO()
+        with patch("mathmodel.run_pipeline", return_value={"status": "PASS"}) as orchestrator, redirect_stdout(output):
+            self.assertEqual(main(["run", str(self.root), "--json"]), 0)
+        orchestrator.assert_called_once()
+        self.assertEqual(json.loads(output.getvalue())["status"], "PASS")
 
     def test_authority_command_reports_local_constitution(self):
         (self.root / "CONSTITUTION.md").write_text("local authority", encoding="utf-8")
