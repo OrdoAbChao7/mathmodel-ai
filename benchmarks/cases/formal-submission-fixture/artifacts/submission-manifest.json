@@ -1,0 +1,4 @@
+{
+  "supporting_materials": ["data/input.csv"],
+  "source_programs": ["solve.py"]
+}
