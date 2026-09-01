@@ -34,6 +34,12 @@ class ScaffoldTests(unittest.TestCase):
         self.assertEqual(config["title"], "Demo")
         self.assertEqual(config["schema_version"], 2)
 
+    def test_init_writes_default_orchestration_for_unified_run(self):
+        init_project(self.root, "demo-002", "Demo", "optimization")
+        config = load_config(self.root)
+        self.assertEqual(config["orchestration"]["stages"], ["build", "audit", "package"])
+        self.assertEqual(config["orchestration"]["max_retries"], 0)
+
     def test_init_never_overwrites_existing_file(self):
         old = self.root / "paper" / "main.tex"
         old.parent.mkdir(parents=True)

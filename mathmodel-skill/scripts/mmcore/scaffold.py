@@ -67,6 +67,10 @@ def _config(project_id: str, title: str, problem_type: str, execution_mode: str 
             "minimum_figures": 8,
             "required_figure_roles": ["data", "method", "result", "validation"],
         },
+        "orchestration": {
+            "stages": ["build", "audit", "package"],
+            "max_retries": 0,
+        },
     }
     if execution_mode != "research_autonomous":
         config["execution_mode"] = execution_mode
