@@ -17,6 +17,7 @@ from mmcore.semantic_validation import evaluate_semantic_validation
 from mmcore.architecture_freeze import evaluate_model_architecture, evaluate_results_freeze
 from mmcore.paper_review import evaluate_review_registry, evaluate_writer_package
 from mmcore.external_capabilities import evaluate_capability_configuration
+from mmcore.orchestration.orchestrator import run_pipeline
 from mmcore.contracts import REQUIRED_ARTIFACTS, validate_artifacts
 from mmcore.manifest import inventory_project, new_run, update_stage, sha256_file
 from mmcore.latex import compile_latex, find_latex_placeholders
@@ -434,6 +435,10 @@ def main(argv: list[str] | None = None) -> int:
     package_parser = subparsers.add_parser("package")
     package_parser.add_argument("project")
     package_parser.add_argument("--json", action="store_true")
+    run_parser = subparsers.add_parser("run")
+    run_parser.add_argument("project")
+    run_parser.add_argument("--resume", action="store_true")
+    run_parser.add_argument("--json", action="store_true")
     authority_parser = subparsers.add_parser("authority")
     authority_parser.add_argument("project")
     authority_parser.add_argument("--json", action="store_true")
@@ -671,6 +676,23 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(result, ensure_ascii=False))
         else:
             print(f"package: {result['status']} ({result.get('pdf', result.get('project', project))})")
+        return 0 if result["status"] == "PASS" else 1
+    if args.command == "run":
+        project = Path(args.project).resolve()
+        try:
+            cfg = load_config(project)
+        except ConfigError as exc:
+            result = {"status": "FAIL", "errors": [{"rule": "RUN-CONFIG-001", "message": str(exc)}]}
+            if args.json:
+                print(json.dumps(result, ensure_ascii=False))
+            else:
+                print(f"run: FAIL ({exc})")
+            return 2
+        result = run_pipeline(project, cfg, resume=args.resume)
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False))
+        else:
+            print(f"run: {result['status']} ({project})")
         return 0 if result["status"] == "PASS" else 1
     if args.command == "authority":
         report = _authority_report(Path(args.project).resolve())
