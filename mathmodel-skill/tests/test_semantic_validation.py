@@ -79,6 +79,27 @@ class SemanticValidationTests(unittest.TestCase):
         report = evaluate_semantic_validation(self.root, self.cfg)
         self.assertEqual(report["status"], "PASS", report)
 
+    def test_classification_profile_checks_stratification_and_leakage(self):
+        self.install_valid()
+        validation = json.loads((self.root / "artifacts/validation.json").read_text(encoding="utf-8"))
+        checks = validation["validations"][0]["checks"]
+        checks.pop("chronological_split")
+        checks["stratified_split"] = {"status": "PASS", "evidence": "class proportions preserved"}
+        write_json(self.root, "artifacts/validation.json", validation)
+        report = evaluate_semantic_validation(self.root, {**self.cfg, "problem_type": "classification"})
+        self.assertEqual(report["g4"]["status"], "PASS", report)
+
+    def test_statistics_profile_checks_sampling_and_uncertainty(self):
+        self.install_valid()
+        validation = json.loads((self.root / "artifacts/validation.json").read_text(encoding="utf-8"))
+        checks = validation["validations"][0]["checks"]
+        checks.pop("chronological_split")
+        checks["sample_assumptions"] = {"status": "PASS", "evidence": "independent sampling frame documented"}
+        checks["uncertainty_interval"] = {"status": "PASS", "evidence": "bootstrap interval recomputed"}
+        write_json(self.root, "artifacts/validation.json", validation)
+        report = evaluate_semantic_validation(self.root, {**self.cfg, "problem_type": "statistics"})
+        self.assertEqual(report["g4"]["status"], "PASS", report)
+
     def test_observed_threshold_violation_fails_even_when_claimed_pass(self):
         self.install_valid(observed=9.2, claimed_status="PASS")
         report = evaluate_semantic_validation(self.root, self.cfg)
