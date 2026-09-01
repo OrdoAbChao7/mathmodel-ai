@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -35,9 +36,17 @@ def _save_state(path: Path, state: dict[str, Any]) -> None:
     path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def _default_runner(project: Path, stage: str) -> dict[str, Any]:
-    script = Path(__file__).resolve().parents[1] / "mathmodel.py"
-    completed = subprocess.run([sys.executable, str(script), stage, str(project), "--json"], cwd=project, capture_output=True, text=True, check=False)
+def _outcome_hash(outcome: dict[str, Any]) -> str:
+    encoded = json.dumps(outcome, ensure_ascii=False, sort_keys=True, default=str).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _default_runner(project: Path, stage: str, timeout_seconds: int = 300) -> dict[str, Any]:
+    script = Path(__file__).resolve().parents[2] / "mathmodel.py"
+    try:
+        completed = subprocess.run([sys.executable, str(script), stage, str(project), "--json"], cwd=project, capture_output=True, text=True, timeout=max(1, timeout_seconds), check=False)
+    except subprocess.TimeoutExpired as exc:
+        return {"status": "FAIL", "error": f"stage exceeded orchestration timeout: {exc}"}
     try:
         payload = json.loads(completed.stdout)
     except json.JSONDecodeError:
@@ -50,14 +59,14 @@ def _default_runner(project: Path, stage: str) -> dict[str, Any]:
 
 def run_parallel(tasks: list[tuple[str, Callable[[], Any]]], max_workers: int = 2) -> dict[str, Any]:
     """Run independent read-only tasks concurrently and return every result."""
-    if not isinstance(tasks, list) or not tasks or isinstance(max_workers, bool) or not isinstance(max_workers, int) or max_workers < 1:
+    if not isinstance(tasks, list) or not tasks or isinstance(max_workers, bool) or not isinstance(max_workers, int) or max_workers < 1 or any(not isinstance(item, (list, tuple)) or len(item) != 2 or not isinstance(item[0], str) or not item[0] or not callable(item[1]) for item in tasks):
         return {"status": "FAIL", "results": {}, "errors": ["tasks and max_workers are invalid"]}
     results: dict[str, Any] = {}
     errors: list[dict[str, str]] = []
     with ThreadPoolExecutor(max_workers=min(max_workers, len(tasks))) as pool:
-        futures = {pool.submit(task): name for name, task in tasks if isinstance(name, str) and callable(task)}
+        futures = {pool.submit(task): name for name, task in tasks}
         if len(futures) != len(tasks):
-            return {"status": "FAIL", "results": {}, "errors": ["each task must contain a name and callable"]}
+            return {"status": "FAIL", "results": {}, "errors": ["task names must be unique"]}
         for future in as_completed(futures):
             name = futures[future]
             try:
@@ -67,7 +76,7 @@ def run_parallel(tasks: list[tuple[str, Callable[[], Any]]], max_workers: int = 
     return {"status": "PASS" if not errors else "FAIL", "results": results, "errors": errors}
 
 
-def run_pipeline(project: Path, config: dict[str, Any], runner: Callable[[str], dict[str, Any]] | None = None, *, now: datetime | None = None, resume: bool = False) -> dict[str, Any]:
+def run_pipeline(project: Path, config: dict[str, Any], runner: Callable[[str], dict[str, Any]] | None = None, *, now: datetime | None = None, clock: Callable[[], datetime] | None = None, resume: bool = False) -> dict[str, Any]:
     """Execute build→audit→package with resumable state and bounded retries."""
     root = Path(project).resolve()
     settings = config.get("orchestration", {}) if isinstance(config, dict) else None
@@ -75,7 +84,7 @@ def run_pipeline(project: Path, config: dict[str, Any], runner: Callable[[str], 
         return {"status": "FAIL", "errors": ["orchestration must be an object"]}
     stages = settings.get("stages", list(_STAGES))
     retries = settings.get("max_retries", 0)
-    if not isinstance(stages, list) or not stages or any(stage not in _STAGES for stage in stages) or isinstance(retries, bool) or not isinstance(retries, int) or retries < 0 or retries > 5:
+    if not isinstance(stages, list) or stages != list(_STAGES) or isinstance(retries, bool) or not isinstance(retries, int) or retries < 0 or retries > 5:
         return {"status": "FAIL", "errors": ["stages or max_retries is invalid"]}
     budget = evaluate_budget(config, now)
     if budget.get("status") == "FAIL":
@@ -84,23 +93,43 @@ def run_pipeline(project: Path, config: dict[str, Any], runner: Callable[[str], 
         return {"status": "BLOCKED_TIME_BUDGET", "budget": budget, "stages": {}}
     path = _state_path(root)
     state = _load_state(path) if resume else {"schema_version": 1, "stages": {}, "attempts": []}
-    if state.get("error") or state.get("schema_version") != 1:
+    if state.get("error") or state.get("schema_version") != 1 or not isinstance(state.get("stages"), dict) or not isinstance(state.get("attempts"), list):
         return {"status": "FAIL", "errors": [state.get("error", "orchestration state schema is unsupported")]}
-    call = runner or (lambda stage: _default_runner(root, stage))
+    if runner is not None:
+        call = runner
+    else:
+        def call(stage: str) -> dict[str, Any]:
+            remaining = budget.get("remaining_seconds")
+            timeout = max(1, min(300, remaining - budget.get("submission_buffer_seconds", 0))) if isinstance(remaining, int) and not isinstance(remaining, bool) else 300
+            return _default_runner(root, stage, timeout)
     results: dict[str, Any] = {}
     for stage in stages:
-        if resume and isinstance(state.get("stages", {}).get(stage), dict) and state["stages"][stage].get("status") == "PASS":
-            results[stage] = state["stages"][stage]
+        current_budget = evaluate_budget(config, clock() if clock else now)
+        if current_budget.get("status") == "FAIL":
+            return {"status": "FAIL", "budget": current_budget, "stages": results, "errors": current_budget.get("errors", [])}
+        if current_budget.get("status") == "EXPIRED" or (current_budget.get("status") == "ACTIVE" and current_budget.get("remaining_seconds", 0) <= current_budget.get("submission_buffer_seconds", 0)):
+            return {"status": "BLOCKED_TIME_BUDGET", "budget": current_budget, "stages": results}
+        saved = state.get("stages", {}).get(stage)
+        if resume and isinstance(saved, dict) and saved.get("status") == "PASS":
+            if not isinstance(saved.get("result"), dict) or saved.get("evidence_hash") != _outcome_hash(saved["result"]):
+                return {"status": "FAIL", "budget": current_budget, "stages": results, "errors": [f"resume evidence for {stage} is missing or invalid"]}
+            results[stage] = saved["result"]
             continue
         outcome: dict[str, Any] = {"status": "FAIL"}
         for attempt in range(retries + 1):
-            outcome = call(stage)
+            try:
+                outcome = call(stage)
+            except Exception as exc:  # noqa: BLE001 - convert runner faults to structured evidence
+                outcome = {"status": "FAIL", "error": str(exc)}
             if not isinstance(outcome, dict):
                 outcome = {"status": "FAIL", "error": "runner must return an object"}
             state.setdefault("attempts", []).append({"stage": stage, "attempt": attempt + 1, "status": outcome.get("status")})
+            after_budget = evaluate_budget(config, clock() if clock else None if now is None else now)
+            if after_budget.get("status") == "EXPIRED" or (after_budget.get("status") == "ACTIVE" and after_budget.get("remaining_seconds", 0) <= after_budget.get("submission_buffer_seconds", 0)):
+                return {"status": "BLOCKED_TIME_BUDGET", "budget": after_budget, "stages": results, "state": str(path)}
             if outcome.get("status") == "PASS":
                 break
-        state.setdefault("stages", {})[stage] = outcome
+        state.setdefault("stages", {})[stage] = {"status": outcome.get("status"), "evidence_hash": _outcome_hash(outcome), "result": outcome}
         _save_state(path, state)
         results[stage] = outcome
         if outcome.get("status") != "PASS":

@@ -46,27 +46,60 @@ class OrchestrationTests(unittest.TestCase):
         evidence["open_critical"] = 1
         self.assertEqual(stopping_decision(evidence, late)["action"], "CONTINUE_MODEL_SEARCH")
 
+    def test_stopping_policy_rejects_boolean_budget_values(self):
+        evidence = {"selected_beats_baseline": True, "validation_passed": True, "open_critical": 0}
+        budget = {"status": "ACTIVE", "remaining_seconds": True, "exploration_threshold_seconds": True}
+        self.assertEqual(stopping_decision(evidence, budget)["action"], "CONTINUE_MODEL_SEARCH")
+
     def test_pipeline_retries_with_bounded_attempts(self):
         calls = []
         def runner(stage):
             calls.append(stage)
             return {"status": "FAIL" if len(calls) < 3 else "PASS", "stage": stage}
-        result = run_pipeline(self.root, {"orchestration": {"stages": ["build"], "max_retries": 2}}, runner=runner, now=self.now)
+        result = run_pipeline(self.root, {"orchestration": {"max_retries": 2}}, runner=runner, now=self.now)
         self.assertEqual(result["status"], "PASS", result)
-        self.assertEqual(len(calls), 3)
+        self.assertEqual(len(calls), 5)
 
     def test_pipeline_resume_skips_completed_stage(self):
         calls = []
         def runner(stage):
             calls.append(stage)
             return {"status": "PASS", "stage": stage}
-        config = {"orchestration": {"stages": ["build", "audit"], "max_retries": 0}}
+        config = {"orchestration": {"max_retries": 0}}
         first = run_pipeline(self.root, config, runner=runner, now=self.now)
         self.assertEqual(first["status"], "PASS")
         calls.clear()
         second = run_pipeline(self.root, config, runner=runner, now=self.now, resume=True)
         self.assertEqual(second["status"], "PASS")
         self.assertEqual(calls, [])
+
+    def test_resume_rejects_forged_state_without_evidence(self):
+        path = self.root / ".mathmodel" / "orchestration-state.json"
+        path.parent.mkdir()
+        path.write_text(json.dumps({"schema_version": 1, "stages": {"build": {"status": "PASS"}, "audit": {"status": "PASS"}, "package": {"status": "PASS"}}, "attempts": []}), encoding="utf-8")
+        result = run_pipeline(self.root, {"orchestration": {}}, runner=lambda stage: {"status": "PASS"}, now=self.now, resume=True)
+        self.assertEqual(result["status"], "FAIL")
+
+    def test_pipeline_rejects_stage_subset(self):
+        result = run_pipeline(self.root, {"orchestration": {"stages": ["package"]}}, runner=lambda stage: {"status": "PASS"}, now=self.now)
+        self.assertEqual(result["status"], "FAIL")
+
+    def test_pipeline_rechecks_expiration_after_stage(self):
+        config = {"orchestration": {"contest_start": "2026-09-01T08:00:00+00:00", "contest_deadline": "2026-09-01T10:00:01+00:00", "submission_buffer_seconds": 0}}
+        ticks = iter([self.now, self.now + timedelta(seconds=2)])
+        result = run_pipeline(self.root, config, runner=lambda stage: {"status": "PASS"}, now=self.now, clock=lambda: next(ticks))
+        self.assertEqual(result["status"], "BLOCKED_TIME_BUDGET")
+
+    def test_malformed_state_returns_structured_failure(self):
+        path = self.root / ".mathmodel" / "orchestration-state.json"
+        path.parent.mkdir()
+        path.write_text(json.dumps({"schema_version": 1, "stages": [], "attempts": "bad"}), encoding="utf-8")
+        result = run_pipeline(self.root, {"orchestration": {}}, runner=lambda stage: {"status": "PASS"}, now=self.now, resume=True)
+        self.assertEqual(result["status"], "FAIL")
+
+    def test_parallel_rejects_malformed_task_tuple(self):
+        result = run_parallel([("a",)], max_workers=2)
+        self.assertEqual(result["status"], "FAIL")
 
     def test_parallel_scheduler_returns_each_result(self):
         result = run_parallel([("a", lambda: 1), ("b", lambda: 2)], max_workers=2)

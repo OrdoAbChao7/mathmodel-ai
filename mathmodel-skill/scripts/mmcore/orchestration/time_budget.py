@@ -64,6 +64,6 @@ def stopping_decision(evidence: dict[str, Any], budget: dict[str, Any]) -> dict[
     required = evidence.get("selected_beats_baseline") is True and evidence.get("validation_passed") is True and evidence.get("open_critical") == 0
     remaining = budget.get("remaining_seconds")
     threshold = budget.get("exploration_threshold_seconds")
-    if required and budget.get("status") == "ACTIVE" and isinstance(remaining, int) and isinstance(threshold, int) and remaining <= threshold:
+    if required and budget.get("status") == "ACTIVE" and isinstance(remaining, int) and not isinstance(remaining, bool) and isinstance(threshold, int) and not isinstance(threshold, bool) and remaining <= threshold:
         return {"action": "STOP_MODEL_SEARCH", "next_action": "FOCUS_ON_VALIDATION_AND_PAPER", "reason": "quality evidence passed and exploration time is below threshold"}
     return {"action": "CONTINUE_MODEL_SEARCH", "reason": "quality evidence or time condition is incomplete"}
