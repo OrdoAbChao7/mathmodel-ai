@@ -7,7 +7,7 @@
 ## Decisions
 
 1. Existing artifact validation remains the source of truth for current projects. New metadata is additive and defaults conservatively.
-2. A quality dimension with no applicable machine checks is `UNASSESSED`, scores zero for machine scoring, and cannot produce a release `PASS` by itself.
+2. Quality dimensions use the explicit states `ASSESSED_PASS`, `ASSESSED_FAIL`, `UNASSESSED`, and `NOT_APPLICABLE`. A dimension with no applicable machine checks is `UNASSESSED`, scores zero for machine scoring, and cannot produce a release `PASS` by itself.
 3. External capabilities are advisory records. They cannot change local gate outcomes or emit a trusted release status.
 4. Schema versions are explicit integers. Unsupported versions fail closed with a clear diagnostic.
 5. Conflicts are recorded, never silently resolved: `UNASSESSED` is the safe status until a declared policy and human decision resolve them.

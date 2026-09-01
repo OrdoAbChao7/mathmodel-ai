@@ -43,6 +43,8 @@ OFFICIAL_JUDGE_WEIGHTS = {
     "communication_clarity": 20,
 }
 
+ASSESSMENT_STATES = {"ASSESSED_PASS", "ASSESSED_FAIL", "UNASSESSED", "NOT_APPLICABLE"}
+
 _OFFICIAL_COMPONENTS = {
     "modeling_reasonableness": ("problem_coverage", "model_rigor"),
     # Creativity is intentionally not inferred from algorithm names or prose.
@@ -59,7 +61,8 @@ def _machine_score(checks: list[dict[str, Any]], dimension: str, weight: int) ->
     if not relevant:
         return 0, "UNASSESSED"
     passed = sum(1 for check in relevant if check.get("status") == "PASS")
-    return round(weight * passed / len(relevant)), "ASSESSED"
+    status = "ASSESSED_PASS" if passed == len(relevant) else "ASSESSED_FAIL"
+    return round(weight * passed / len(relevant)), status
 
 
 def _validate_manual(manual: Any) -> tuple[dict[str, int], list[str], str]:
@@ -94,12 +97,12 @@ def _official_judge_view(dimensions: dict[str, dict[str, Any]]) -> dict[str, Any
     for name, weight in OFFICIAL_JUDGE_WEIGHTS.items():
         components = _OFFICIAL_COMPONENTS[name]
         component_details = [dimensions[item] for item in components]
-        assessed = bool(component_details) and all(item.get("assessment_status") != "UNASSESSED" for item in component_details)
+        assessed = bool(component_details) and all(item.get("assessment_status") not in {"UNASSESSED", "NOT_APPLICABLE"} for item in component_details)
         if assessed:
             raw_score = sum(item["score"] for item in component_details)
             raw_weight = sum(item["weight"] for item in component_details)
             score = round(weight * raw_score / raw_weight) if raw_weight else 0
-            status = "ASSESSED"
+            status = "ASSESSED_PASS" if all(item.get("assessment_status") == "ASSESSED_PASS" for item in component_details) else "ASSESSED_FAIL"
         else:
             score = 0
             status = "UNASSESSED"
@@ -108,7 +111,7 @@ def _official_judge_view(dimensions: dict[str, dict[str, Any]]) -> dict[str, Any
         "dimensions": official,
         "weights": OFFICIAL_JUDGE_WEIGHTS,
         "total": sum(item["score"] for item in official.values()),
-        "assessment_status": "ASSESSED" if all(item["assessment_status"] == "ASSESSED" for item in official.values()) else "UNASSESSED",
+        "assessment_status": "ASSESSED_PASS" if all(item["assessment_status"] == "ASSESSED_PASS" for item in official.values()) else "UNASSESSED",
     }
 
 
@@ -121,7 +124,7 @@ def score_quality(checks: list[dict[str, Any]], manual: dict | None = None) -> d
         if dimension in manual_scores:
             score = manual_scores[dimension]
             source = "manual"
-            assessment_status = "HUMAN_ASSESSED"
+            assessment_status = "ASSESSED_PASS"
         else:
             score, assessment_status = _machine_score(checks, dimension, weight)
             source = "machine"

@@ -153,6 +153,16 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(view["dimensions"]["modeling_creativity"]["assessment_status"], "UNASSESSED")
         self.assertLess(view["total"], 100)
 
+    def test_assessment_status_uses_explicit_pass_fail_states(self):
+        checks = [
+            {"rule": "EVIDENCE-MODEL-001", "status": "PASS", "severity": "FAIL"},
+            {"rule": "EVIDENCE-VALIDATION-001", "status": "FAIL", "severity": "FAIL"},
+        ]
+        scored = score_quality(checks)
+        self.assertEqual(scored["dimensions"]["model_rigor"]["assessment_status"], "ASSESSED_PASS")
+        self.assertEqual(scored["dimensions"]["validation_robustness"]["assessment_status"], "ASSESSED_FAIL")
+        self.assertEqual(scored["dimensions"]["figures"]["assessment_status"], "UNASSESSED")
+
     def test_missing_claim_support_is_hard_failure(self):
         write_artifacts(self.root, result_ids=["R-1"], claim_support=["R-missing"])
         report = validate_artifacts(self.root, REQUIRED)
