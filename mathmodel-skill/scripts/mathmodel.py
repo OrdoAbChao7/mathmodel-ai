@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 from mmcore.analysis import collect_outputs, run_analysis
-from mmcore.authority import accept_external_status, load_json, validate_schema_version
+from mmcore.authority import accept_external_status, load_json, validate_registry
 from mmcore.config import ConfigError, load_config
 from mmcore.contracts import REQUIRED_ARTIFACTS, validate_artifacts
 from mmcore.manifest import inventory_project, new_run, update_stage, sha256_file
@@ -147,7 +147,8 @@ def _authority_report(project: Path) -> dict:
             registry_status[name] = "UNASSESSED"
             continue
         loaded = load_json(path)
-        registry_status[name] = "FAIL" if loaded["status"] != "PASS" else validate_schema_version(loaded["record"])
+        kind = "capability" if name == "capability_registry" else "source"
+        registry_status[name] = "FAIL" if loaded["status"] != "PASS" else validate_registry(loaded["record"], kind)
     return {
         "constitution": "PASS" if constitution.is_file() else "FAIL",
         "schemas": "PASS" if all(path.is_file() for path in schemas) else "FAIL",
@@ -503,7 +504,9 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(report, ensure_ascii=False))
         else:
             print(f"authority: {report['constitution']} schemas={report['schemas']}")
-        return 0 if report["constitution"] == "PASS" and report["schemas"] == "PASS" else 1
+        registry_values = report["registries"].values()
+        registries_ok = all(value in {"PASS", "UNASSESSED"} for value in registry_values)
+        return 0 if report["constitution"] == "PASS" and report["schemas"] == "PASS" and registries_ok else 1
     if args.command is None:
         parser.print_help()
         return 0

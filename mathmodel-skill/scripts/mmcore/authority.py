@@ -8,6 +8,10 @@ from typing import Any
 
 SUPPORTED_SCHEMA_VERSION = 1
 STATUSES = {"PASS", "FAIL", "UNASSESSED", "CONFLICT"}
+_REGISTRY_CONTRACTS = {
+    "capability": ("capabilities", ("id", "name", "status")),
+    "source": ("sources", ("id", "repository", "license", "integration_mode")),
+}
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -28,14 +32,33 @@ def validate_schema_version(record: Any, expected: int = SUPPORTED_SCHEMA_VERSIO
     return "PASS"
 
 
+def validate_registry(record: Any, kind: str) -> str:
+    """Validate the small local registry contract without an optional dependency."""
+    if validate_schema_version(record) != "PASS" or kind not in _REGISTRY_CONTRACTS:
+        return "FAIL"
+    collection, required = _REGISTRY_CONTRACTS[kind]
+    items = record.get(collection)
+    if not isinstance(items, list):
+        return "FAIL"
+    for item in items:
+        if not isinstance(item, dict) or any(not isinstance(item.get(field), str) or not item[field] for field in required):
+            return "FAIL"
+    return "PASS"
+
+
 def resolve_conflict(conflict: Any) -> dict[str, str]:
     """Keep unresolved conflicts unassessed; only an explicit resolution passes."""
     if not isinstance(conflict, dict):
         return {"status": "FAIL", "reason": "conflict record must be an object"}
     status = conflict.get("status")
-    if status in {"RESOLVED", "ACCEPTED"} and conflict.get("resolution"):
+    if (
+        status in {"RESOLVED", "ACCEPTED"}
+        and conflict.get("resolution")
+        and conflict.get("policy_id")
+        and conflict.get("human_decision")
+    ):
         return {"status": "PASS", "reason": "explicit resolution recorded"}
-    if status in {"OPEN", "PENDING", "CONFLICT"}:
+    if status in {"OPEN", "PENDING", "CONFLICT", "RESOLVED", "ACCEPTED"}:
         return {"status": "UNASSESSED", "reason": "conflict requires an explicit decision"}
     return {"status": "FAIL", "reason": "invalid conflict status"}
 

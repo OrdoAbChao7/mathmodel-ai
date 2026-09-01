@@ -79,6 +79,17 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(report["constitution"], "PASS")
         self.assertEqual(report["external_authority"], "REJECTED")
 
+    def test_authority_command_blocks_malformed_registry(self):
+        (self.root / "CONSTITUTION.md").write_text("local authority", encoding="utf-8")
+        artifacts = self.root / "artifacts"
+        artifacts.mkdir()
+        (artifacts / "capability-registry.json").write_text(json.dumps({"schema_version": 1, "capabilities": "bad"}), encoding="utf-8")
+        output = StringIO()
+        with redirect_stdout(output):
+            self.assertEqual(main(["authority", str(self.root), "--json"]), 1)
+        report = json.loads(output.getvalue())
+        self.assertEqual(report["registries"]["capability_registry"], "FAIL")
+
 
 if __name__ == "__main__":
     unittest.main()
