@@ -25,6 +25,22 @@ class OrchestrationTests(unittest.TestCase):
     def config(self):
         return {"orchestration": {"contest_start": "2026-09-01T08:00:00+00:00", "contest_deadline": "2026-09-01T12:00:00+00:00", "submission_buffer_seconds": 900, "exploration_threshold_seconds": 1800, "max_retries": 2, "milestones": {"problem_lock_deadline": "2026-09-01T09:00:00+00:00", "model_selection_deadline": "2026-09-01T10:30:00+00:00"}}}
 
+    def stage_outcome(self, stage, status="PASS"):
+        if status != "PASS":
+            return {"status": status, "stage": stage}
+        build = self.root / "build"
+        release = self.root / "release"
+        build.mkdir(exist_ok=True)
+        release.mkdir(exist_ok=True)
+        (build / "quality-report.json").write_text(json.dumps({
+            "status": "PASS",
+            "quality": {"release_status": "PASS"},
+            "page_gates": [{"severity": "INFO", "status": "PASS"}],
+        }), encoding="utf-8")
+        (build / "build-report.json").write_text(json.dumps({"status": "PASS"}), encoding="utf-8")
+        (release / "fixture-package-manifest.json").write_text(json.dumps({"status": "PASS"}), encoding="utf-8")
+        return {"status": "PASS", "stage": stage, "page_gates": [{"severity": "INFO", "status": "PASS"}], "checks": []}
+
     def test_budget_reports_remaining_and_milestones(self):
         report = evaluate_budget(self.config(), self.now)
         self.assertEqual(report["status"], "ACTIVE")
@@ -55,7 +71,7 @@ class OrchestrationTests(unittest.TestCase):
         calls = []
         def runner(stage):
             calls.append(stage)
-            return {"status": "FAIL" if len(calls) < 3 else "PASS", "stage": stage}
+            return self.stage_outcome(stage, "FAIL" if len(calls) < 3 else "PASS")
         result = run_pipeline(self.root, {"orchestration": {"max_retries": 2}}, runner=runner, now=self.now)
         self.assertEqual(result["status"], "PASS", result)
         self.assertEqual(len(calls), 5)
@@ -64,7 +80,7 @@ class OrchestrationTests(unittest.TestCase):
         calls = []
         def runner(stage):
             calls.append(stage)
-            return {"status": "PASS", "stage": stage}
+            return self.stage_outcome(stage)
         config = {"orchestration": {"max_retries": 0}}
         first = run_pipeline(self.root, config, runner=runner, now=self.now)
         self.assertEqual(first["status"], "PASS")
@@ -84,10 +100,14 @@ class OrchestrationTests(unittest.TestCase):
         result = run_pipeline(self.root, {"orchestration": {"stages": ["package"]}}, runner=lambda stage: {"status": "PASS"}, now=self.now)
         self.assertEqual(result["status"], "FAIL")
 
+    def test_pipeline_rejects_empty_pass_without_gate_evidence(self):
+        result = run_pipeline(self.root, {"orchestration": {}}, runner=lambda stage: {"status": "PASS"}, now=self.now)
+        self.assertEqual(result["status"], "FAIL")
+
     def test_pipeline_rechecks_expiration_after_stage(self):
         config = {"orchestration": {"contest_start": "2026-09-01T08:00:00+00:00", "contest_deadline": "2026-09-01T10:00:01+00:00", "submission_buffer_seconds": 0}}
         ticks = iter([self.now, self.now + timedelta(seconds=2)])
-        result = run_pipeline(self.root, config, runner=lambda stage: {"status": "PASS"}, now=self.now, clock=lambda: next(ticks))
+        result = run_pipeline(self.root, config, runner=lambda stage: self.stage_outcome(stage), now=self.now, clock=lambda: next(ticks))
         self.assertEqual(result["status"], "BLOCKED_TIME_BUDGET")
 
     def test_malformed_state_returns_structured_failure(self):
@@ -105,6 +125,10 @@ class OrchestrationTests(unittest.TestCase):
         result = run_parallel([("a", lambda: 1), ("b", lambda: 2)], max_workers=2)
         self.assertEqual(result["status"], "PASS")
         self.assertEqual(result["results"], {"a": 1, "b": 2})
+
+    def test_parallel_rejects_duplicate_task_names(self):
+        result = run_parallel([("a", lambda: 1), ("a", lambda: 2)], max_workers=2)
+        self.assertEqual(result["status"], "FAIL")
 
 
 if __name__ == "__main__":

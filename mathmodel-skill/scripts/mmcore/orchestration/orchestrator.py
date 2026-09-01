@@ -41,6 +41,79 @@ def _outcome_hash(outcome: dict[str, Any]) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def _evidence_snapshot(project: Path, stage: str) -> dict[str, Any] | None:
+    """Hash the on-disk outputs that make a completed stage resumable."""
+    root = Path(project).resolve()
+    if stage == "build":
+        paths = [root / "build" / "quality-report.json", root / "build" / "build-report.json"]
+    elif stage == "audit":
+        paths = [root / "build" / "quality-report.json"]
+    elif stage == "package":
+        paths = sorted((root / "release").glob("*-package-manifest.json"))
+    else:
+        return None
+    if not paths or any(not path.is_file() for path in paths):
+        return None
+    digest = hashlib.sha256()
+    relative_paths: list[str] = []
+    for path in paths:
+        relative = path.relative_to(root).as_posix()
+        relative_paths.append(relative)
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return {"hash": digest.hexdigest(), "paths": relative_paths}
+
+
+def _stage_outputs_pass(project: Path, stage: str) -> bool:
+    """Require the persisted files themselves to contain a passing result."""
+    root = Path(project).resolve()
+    try:
+        quality_path = root / "build" / "quality-report.json"
+        if stage in {"build", "audit"}:
+            quality = json.loads(quality_path.read_text(encoding="utf-8"))
+            if not isinstance(quality, dict) or quality.get("quality", {}).get("release_status") != "PASS":
+                return False
+            gates = quality.get("page_gates")
+            if not isinstance(gates, list) or not gates or any(not isinstance(gate, dict) or gate.get("status") != "PASS" for gate in gates):
+                return False
+            if stage == "audit":
+                return True
+        if stage == "build":
+            report = json.loads((root / "build" / "build-report.json").read_text(encoding="utf-8"))
+            return isinstance(report, dict) and report.get("status") == "PASS"
+        if stage == "package":
+            manifests = sorted((root / "release").glob("*-package-manifest.json"))
+            if not manifests:
+                return False
+            manifest = json.loads(manifests[-1].read_text(encoding="utf-8"))
+            if not isinstance(manifest, dict) or manifest.get("status") != "PASS":
+                return False
+            pdf = manifest.get("pdf")
+            if isinstance(pdf, dict) and isinstance(pdf.get("path"), str):
+                pdf_path = (root / pdf["path"]).resolve()
+                pdf_path.relative_to(root)
+                if not pdf_path.is_file():
+                    return False
+            return True
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, KeyError, ValueError):
+        return False
+    return False
+
+
+def _stage_passes(outcome: dict[str, Any], stage: str) -> bool:
+    """Do not let an injected runner bypass the stage-specific gate contract."""
+    if not isinstance(outcome, dict) or outcome.get("status") != "PASS":
+        return False
+    if outcome.get("stage") not in (None, stage):
+        return False
+    if stage in {"build", "audit"}:
+        gates = outcome.get("page_gates")
+        return isinstance(gates, list) and bool(gates) and all(isinstance(gate, dict) and gate.get("status") == "PASS" for gate in gates)
+    return isinstance(outcome.get("checks"), list)
+
+
 def _default_runner(project: Path, stage: str, timeout_seconds: int = 300) -> dict[str, Any]:
     script = Path(__file__).resolve().parents[2] / "mathmodel.py"
     try:
@@ -59,7 +132,7 @@ def _default_runner(project: Path, stage: str, timeout_seconds: int = 300) -> di
 
 def run_parallel(tasks: list[tuple[str, Callable[[], Any]]], max_workers: int = 2) -> dict[str, Any]:
     """Run independent read-only tasks concurrently and return every result."""
-    if not isinstance(tasks, list) or not tasks or isinstance(max_workers, bool) or not isinstance(max_workers, int) or max_workers < 1 or any(not isinstance(item, (list, tuple)) or len(item) != 2 or not isinstance(item[0], str) or not item[0] or not callable(item[1]) for item in tasks):
+    if not isinstance(tasks, list) or not tasks or isinstance(max_workers, bool) or not isinstance(max_workers, int) or max_workers < 1 or any(not isinstance(item, (list, tuple)) or len(item) != 2 or not isinstance(item[0], str) or not item[0] or not callable(item[1]) for item in tasks) or len({item[0] for item in tasks}) != len(tasks):
         return {"status": "FAIL", "results": {}, "errors": ["tasks and max_workers are invalid"]}
     results: dict[str, Any] = {}
     errors: list[dict[str, str]] = []
@@ -111,9 +184,19 @@ def run_pipeline(project: Path, config: dict[str, Any], runner: Callable[[str], 
             return {"status": "BLOCKED_TIME_BUDGET", "budget": current_budget, "stages": results}
         saved = state.get("stages", {}).get(stage)
         if resume and isinstance(saved, dict) and saved.get("status") == "PASS":
-            if not isinstance(saved.get("result"), dict) or saved.get("evidence_hash") != _outcome_hash(saved["result"]):
+            snapshot = _evidence_snapshot(root, stage)
+            saved_result = saved.get("result")
+            if (
+                not isinstance(saved_result, dict)
+                or not _stage_passes(saved_result, stage)
+                or saved.get("evidence_hash") != _outcome_hash(saved_result)
+                or not isinstance(snapshot, dict)
+                or saved.get("project_evidence_hash") != snapshot.get("hash")
+                or saved.get("project_evidence_paths") != snapshot.get("paths")
+                or not _stage_outputs_pass(root, stage)
+            ):
                 return {"status": "FAIL", "budget": current_budget, "stages": results, "errors": [f"resume evidence for {stage} is missing or invalid"]}
-            results[stage] = saved["result"]
+            results[stage] = saved_result
             continue
         outcome: dict[str, Any] = {"status": "FAIL"}
         for attempt in range(retries + 1):
@@ -127,9 +210,13 @@ def run_pipeline(project: Path, config: dict[str, Any], runner: Callable[[str], 
             after_budget = evaluate_budget(config, clock() if clock else None if now is None else now)
             if after_budget.get("status") == "EXPIRED" or (after_budget.get("status") == "ACTIVE" and after_budget.get("remaining_seconds", 0) <= after_budget.get("submission_buffer_seconds", 0)):
                 return {"status": "BLOCKED_TIME_BUDGET", "budget": after_budget, "stages": results, "state": str(path)}
-            if outcome.get("status") == "PASS":
+            if _stage_passes(outcome, stage) and _stage_outputs_pass(root, stage):
                 break
-        state.setdefault("stages", {})[stage] = {"status": outcome.get("status"), "evidence_hash": _outcome_hash(outcome), "result": outcome}
+        snapshot = _evidence_snapshot(root, stage)
+        if not _stage_passes(outcome, stage) or snapshot is None or not _stage_outputs_pass(root, stage):
+            outcome = {"status": "FAIL", "stage": stage, "error": "stage output evidence is missing or invalid"}
+            snapshot = None
+        state.setdefault("stages", {})[stage] = {"status": outcome.get("status"), "evidence_hash": _outcome_hash(outcome), "result": outcome, "project_evidence_hash": snapshot.get("hash") if snapshot else None, "project_evidence_paths": snapshot.get("paths") if snapshot else []}
         _save_state(path, state)
         results[stage] = outcome
         if outcome.get("status") != "PASS":
