@@ -161,6 +161,18 @@ class ModelTournamentTests(unittest.TestCase):
         report = evaluate_model_tournament(self.root, self.cfg)
         self.assertEqual(report["g3"]["status"], "FAIL")
 
+    def test_h2_signoff_requires_reviewer_metadata_and_string_artifacts(self):
+        self.install_valid()
+        invalid = h2()
+        invalid.pop("reviewer_name")
+        invalid.pop("reviewer_role")
+        invalid.pop("timestamp")
+        invalid.pop("evidence_notes")
+        invalid["reviewed_artifacts"].append(7)
+        write_jsonl(self.root, "artifacts/human-review-ledger.jsonl", [invalid])
+        report = evaluate_model_tournament(self.root, self.cfg)
+        self.assertEqual(report["g3"]["status"], "FAIL")
+
     def test_multiple_selected_candidates_fail_g3(self):
         self.install_valid()
         with (self.root / "artifacts/decision-ledger.jsonl").open("a", encoding="utf-8") as stream:

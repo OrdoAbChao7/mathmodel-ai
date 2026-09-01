@@ -255,9 +255,28 @@ def _h2_check(project: Path) -> dict[str, Any]:
     rows, errors = _read_jsonl(project / "artifacts" / "human-review-ledger.jsonl")
     if errors:
         return _check("G3-H2-LINK-001", "FAIL", "H2 ledger contains malformed records", ledger_errors=errors)
+    malformed = []
     for row in rows:
         reviewed = row.get("reviewed_artifacts")
-        if row.get("gate") == "H2_METHOD_SELECTION" and row.get("decision") == "APPROVED" and isinstance(reviewed, list) and _H2_ARTIFACTS <= {item.replace("\\", "/") for item in reviewed if isinstance(item, str)}:
+        if row.get("gate") != "H2_METHOD_SELECTION":
+            continue
+        required = ("id", "gate", "reviewed_artifacts", "reviewer_name", "reviewer_role", "timestamp", "decision", "evidence_notes")
+        missing = [field for field in required if field not in row]
+        valid_artifacts = isinstance(reviewed, list) and bool(reviewed) and all(isinstance(item, str) and item.strip() for item in reviewed)
+        valid = (
+            not missing and _text(row.get("id")) and _text(row.get("reviewer_name"))
+            and _text(row.get("reviewer_role")) and _text(row.get("timestamp"))
+            and row.get("decision") == "APPROVED" and _text(row.get("evidence_notes"))
+            and valid_artifacts and _H2_ARTIFACTS <= {item.replace("\\", "/") for item in reviewed}
+        )
+        if valid:
+            continue
+        malformed.append({"id": row.get("id"), "missing": missing})
+    if malformed:
+        return _check("G3-H2-LINK-001", "FAIL", "H2 signoff record is structurally invalid", records=malformed)
+    for row in rows:
+        reviewed = row.get("reviewed_artifacts")
+        if row.get("gate") == "H2_METHOD_SELECTION" and isinstance(reviewed, list) and _H2_ARTIFACTS <= {item.replace("\\", "/") for item in reviewed if isinstance(item, str)}:
             return _check("G3-H2-LINK-001", "PASS", "H2 signoff covers model-search evidence", review_id=row.get("id"))
     return _check("G3-H2-LINK-001", "FAIL", "H2 signoff does not cover model-search evidence", ledger_errors=errors)
 
