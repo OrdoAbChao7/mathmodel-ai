@@ -1,0 +1,11 @@
+rule_version: CUMCM-2026-v1
+effective_date: 2026-01-01
+source_title: CUMCM paper presentation rules
+verified_at: 2026-09-01
+required_sections:
+  - abstract
+  - problem
+  - assumptions
+  - model
+  - validation
+  - conclusion

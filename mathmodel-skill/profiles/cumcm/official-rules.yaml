@@ -1,0 +1,6 @@
+rule_version: CUMCM-2026-v1
+effective_date: 2026-01-01
+source_title: CUMCM official submission rules
+verified_at: 2026-09-01
+identity_requirements:
+  preserve_anonymity: true

@@ -19,6 +19,7 @@ _PROBLEM_TYPES = {
     "simulation",
     "hybrid",
 }
+_EXECUTION_MODES = {"research_autonomous", "competition_assisted", "competition_max"}
 _REQUIRED_TOP_LEVEL = {
     "schema_version",
     "project_id",
@@ -91,6 +92,8 @@ def load_config(project: Path) -> dict[str, Any]:
         _require_string(config[field], field)
     if config["problem_type"] not in _PROBLEM_TYPES:
         raise ConfigError("problem_type is not supported")
+    if config.get("execution_mode", "research_autonomous") not in _EXECUTION_MODES:
+        raise ConfigError("execution_mode is not supported")
 
     commands = _require_mapping(config["commands"], "commands")
     analyze = commands.get("analyze")

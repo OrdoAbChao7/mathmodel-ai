@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import load_config
+from .compliance import requires_formal_compliance
 from .manifest import inventory_project, sha256_file
 
 
@@ -63,6 +64,9 @@ def _gate_records(report: dict[str, Any]) -> list[dict[str, Any]]:
         records.append(_record("PACKAGE-QUALITY-001", "FAIL", "quality release status is not PASS", release_status=quality.get("release_status")))
     if report.get("status") not in (None, "PASS"):
         records.append(_record("PACKAGE-REPORT-001", "FAIL", "build or audit report is not PASS", report_status=report.get("status")))
+    compliance = report.get("compliance")
+    if isinstance(compliance, dict) and compliance.get("status") not in (None, "PASS", "NOT_APPLICABLE"):
+        records.append(_record("PACKAGE-COMPLIANCE-001", "FAIL", "CUMCM compliance status is not PASS", compliance_status=compliance.get("status")))
     hashes = report.get("hash_checks")
     if not isinstance(hashes, list) or not hashes:
         records.append(_record("PACKAGE-HASH-001", "FAIL", "source/output hash evidence is missing"))
@@ -101,6 +105,10 @@ def package(project: Path, report: dict[str, Any] | str | Path | None = None) ->
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         return {"status": "BLOCKED", "checks": [_record("PACKAGE-INPUT-001", "FAIL", str(exc))]}
     checks = list(_gate_records(loaded))
+    compliance = loaded.get("compliance")
+    if requires_formal_compliance(cfg):
+        if not isinstance(compliance, dict) or compliance.get("status") != "PASS":
+            checks.append(_record("PACKAGE-COMPLIANCE-001", "FAIL", "formal competition package requires PASS CUMCM compliance evidence"))
     quality = loaded.get("quality") if isinstance(loaded.get("quality"), dict) else {}
     manual = quality.get("manual_review")
     if manual != "COMPLETE":

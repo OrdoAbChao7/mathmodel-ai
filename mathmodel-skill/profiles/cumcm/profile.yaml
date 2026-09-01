@@ -1,0 +1,13 @@
+profile_id: cumcm-2026
+rule_version: CUMCM-2026-v1
+effective_date: 2026-01-01
+source_title: CUMCM competition compliance profile
+verified_at: 2026-09-01
+formal_modes:
+  - competition_assisted
+  - competition_max
+required_human_gates:
+  - H1_PROBLEM_UNDERSTANDING
+  - H2_METHOD_SELECTION
+  - H3_RESULT_VERIFICATION
+  - H4_FINAL_SUBMISSION

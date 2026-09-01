@@ -1,0 +1,11 @@
+rule_version: CUMCM-2026-v1
+effective_date: 2026-01-01
+source_title: Local gate policy
+verified_at: 2026-09-01
+release_requires:
+  - G0_CUMCM_COMPLIANCE
+  - H1_PROBLEM_UNDERSTANDING
+  - H2_METHOD_SELECTION
+  - H3_RESULT_VERIFICATION
+  - H4_FINAL_SUBMISSION
+external_status_authority: local_only

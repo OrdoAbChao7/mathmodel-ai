@@ -1,0 +1,11 @@
+rule_version: CUMCM-2026-v1
+effective_date: 2026-01-01
+source_title: CUMCM AI usage disclosure rules
+verified_at: 2026-09-01
+ledger_path: artifacts/ai-usage-ledger.jsonl
+human_review_ledger_path: artifacts/human-review-ledger.jsonl
+forbid_sensitive_patterns:
+  - api[_-]?key
+  - access[_-]?token
+  - secret
+max_review_age_days: 30
