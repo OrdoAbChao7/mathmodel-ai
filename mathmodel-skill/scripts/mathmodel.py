@@ -511,7 +511,7 @@ def main(argv: list[str] | None = None) -> int:
     benchmark_parser = subparsers.add_parser("benchmark")
     benchmark_parser.add_argument("project")
     benchmark_parser.add_argument("--registry")
-    benchmark_parser.add_argument("--repeats", type=int, default=1)
+    benchmark_parser.add_argument("--repeats", type=int, default=None)
     benchmark_parser.add_argument("--json", action="store_true")
     submission_parser = subparsers.add_parser("submission")
     submission_parser.add_argument("project")
@@ -819,7 +819,11 @@ def main(argv: list[str] | None = None) -> int:
         try:
             cfg = load_config(project)
             registry = load_case_registry(project, args.registry)
-            result = run_configured_benchmark(project, cfg, registry, repeats=args.repeats)
+            configured_repeats = args.repeats
+            if configured_repeats is None:
+                benchmark_settings = cfg.get("benchmark", {})
+                configured_repeats = benchmark_settings.get("repeats", 1) if isinstance(benchmark_settings, dict) else 1
+            result = run_configured_benchmark(project, cfg, registry, repeats=configured_repeats)
             result["report_path"] = write_benchmark_report(project, result)
         except (ConfigError, BenchmarkError, OSError, TypeError, ValueError) as exc:
             result = {"status": "FAIL", "errors": [str(exc)]}

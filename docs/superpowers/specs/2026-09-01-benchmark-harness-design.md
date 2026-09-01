@@ -21,4 +21,6 @@ mathmodel benchmark PROJECT [--registry PATH] [--repeats N] [--json]
 
 Commands are configured in the project as `benchmark.baseline_command` and `benchmark.candidate_command`. Each command receives `MATHMODEL_BENCHMARK_CASE`, `MATHMODEL_BENCHMARK_CASE_ID`, `MATHMODEL_BENCHMARK_VARIANT`, and `MATHMODEL_BENCHMARK_REPEAT`, and must print one JSON result.
 
+When `--repeats` is omitted, the CLI uses `benchmark.repeats` from `mathmodel.json` and otherwise defaults to one repetition; an explicit CLI value takes precedence.
+
 Reports are content-addressed under `benchmarks/reports/` so rerunning the same report does not create duplicate filenames.
