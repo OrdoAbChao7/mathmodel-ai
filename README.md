@@ -2,6 +2,8 @@
 
 This project provides a reproducible workflow for producing and auditing mathematical-modeling contest papers. It includes a reusable `mathmodel-skill`, deterministic CLI checks, evidence registries, solver/analysis runners, LaTeX page-balance gates, end-to-end fixtures, a competition-max benchmark, and release packaging rules.
 
+Supported problem profiles are `forecasting`, `optimization`, `evaluation`, `mechanism`, `simulation`, `classification`, `statistics`, and `hybrid`. The classification and statistics profiles include dedicated validation requirements and writing references; unsupported types fail during configuration loading.
+
 ## Quick start
 
 ```text
