@@ -28,6 +28,19 @@ def _text(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
+def _safe_existing_file(root: Path, value: Any) -> Path | None:
+    """Resolve only project-relative evidence that exists as a regular file."""
+    if not _text(value):
+        return None
+    candidate = Path(value)
+    if candidate.is_absolute():
+        return None
+    resolved = (root / candidate).resolve()
+    if resolved == root or root not in resolved.parents or not resolved.is_file():
+        return None
+    return resolved
+
+
 def _requirements() -> tuple[dict[str, int], set[str], str]:
     path = Path(__file__).resolve().parents[2] / "profiles" / "cumcm" / "profile.yaml"
     try:
@@ -74,7 +87,8 @@ def evaluate_max_rigor(project: Path, config: dict[str, Any]) -> dict[str, Any]:
     checks.append(_check("G8-MAX-ROBUSTNESS-001", "PASS" if attack_ok else "FAIL", "extended robustness attacks are recorded" if attack_ok else "max mode lacks required robustness attacks", required=sorted(required_attacks), actual=attacks))
     reviews = data.get("external_reviews")
     ars = [item for item in reviews if isinstance(item, dict) and item.get("provider") == required_provider] if isinstance(reviews, list) else []
-    ars_ok = bool(ars) and all(item.get("status") == "COMPLETE" and _text(item.get("evidence")) for item in ars)
-    checks.append(_check("G8-MAX-ARS-001", "PASS" if ars_ok else "FAIL", "ARS external review is complete and referenced" if ars_ok else "max mode requires a completed ARS review reference"))
+    invalid_evidence = [item.get("evidence") for item in ars if _safe_existing_file(root, item.get("evidence")) is None]
+    ars_ok = bool(ars) and not invalid_evidence and all(item.get("status") == "COMPLETE" for item in ars)
+    checks.append(_check("G8-MAX-ARS-001", "PASS" if ars_ok else "FAIL", "ARS external review is complete and referenced" if ars_ok else "max mode requires a completed ARS review with existing project-local evidence", invalid_evidence=invalid_evidence))
     status = "PASS" if checks and all(item["status"] == "PASS" for item in checks) else "FAIL"
     return {"status": status, "mode": mode, "requirements": numeric_requirements, "checks": checks}

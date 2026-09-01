@@ -16,6 +16,7 @@ class MaxRigorTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         (self.root / "artifacts").mkdir()
+        (self.root / "artifacts" / "ars-review.json").write_text("{\"review\": \"complete\"}", encoding="utf-8")
         self.cfg = {"execution_mode": "competition_max"}
 
     def tearDown(self):
@@ -48,6 +49,27 @@ class MaxRigorTests(unittest.TestCase):
         report = evaluate_max_rigor(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
         self.assertTrue(any(check["rule"] == "G8-MAX-ARS-001" for check in report["checks"]))
+
+    def test_max_mode_requires_existing_project_relative_ars_evidence(self):
+        (self.root / "artifacts" / "ars-review.json").unlink()
+        self.write(self.valid())
+        report = evaluate_max_rigor(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+        ars_check = next(check for check in report["checks"] if check["rule"] == "G8-MAX-ARS-001")
+        self.assertEqual(ars_check["status"], "FAIL")
+
+        evidence = self.root / "artifacts" / "ars-review.json"
+        evidence.write_text("{\"review\": \"complete\"}", encoding="utf-8")
+        data = self.valid()
+        data["external_reviews"][0]["evidence"] = "artifacts/ars-review.json"
+        self.write(data)
+        report = evaluate_max_rigor(self.root, self.cfg)
+        self.assertEqual(report["status"], "PASS", report)
+
+        data["external_reviews"][0]["evidence"] = "C:/outside/ars-review.json"
+        self.write(data)
+        report = evaluate_max_rigor(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
 
     def test_assisted_mode_does_not_require_max_artifact(self):
         report = evaluate_max_rigor(self.root, {"execution_mode": "competition_assisted"})
