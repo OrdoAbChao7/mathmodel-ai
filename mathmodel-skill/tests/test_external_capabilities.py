@@ -100,6 +100,14 @@ class ExternalCapabilityTests(unittest.TestCase):
         result = resolve_adapter(self.root, "candidate_generation", "unknown")
         self.assertEqual(result["status"], "FAIL")
 
+    def test_bundled_source_registry_has_audit_metadata(self):
+        import yaml
+        path = Path(__file__).resolve().parents[1] / "config" / "external-sources.yaml"
+        registry = yaml.safe_load(path.read_text(encoding="utf-8"))
+        for field in ("rule_version", "effective_date", "source_title", "verified_at"):
+            self.assertIsInstance(registry.get(field), str)
+            self.assertTrue(registry[field].strip())
+
 
 if __name__ == "__main__":
     unittest.main()

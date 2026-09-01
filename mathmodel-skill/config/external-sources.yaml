@@ -1,4 +1,8 @@
 schema_version: 1
+rule_version: external-sources-2026-09-01
+effective_date: '2026-09-01'
+source_title: MathModel-AI v2 external capability source registry
+verified_at: '2026-09-01'
 sources:
   - id: xiaoma
     repository: https://github.com/XiaoMaColtAI/math-modeling-skill
