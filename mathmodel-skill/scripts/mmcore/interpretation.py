@@ -141,12 +141,20 @@ def _conflict_checks(project: Path, computed: list[dict[str, Any]], candidate_id
         data.get("schema_version") == 1
         and isinstance(data.get("generated_by"), str) and bool(data["generated_by"].strip())
         and isinstance(data.get("candidate_ids"), list)
+        and all(isinstance(item, str) and bool(item.strip()) for item in data.get("candidate_ids", []))
         and sorted(data["candidate_ids"]) == sorted(candidate_ids)
     )
     if not metadata_valid:
         checks.append(_check("G1-ARTIFACT-METADATA-001", "FAIL", "conflict artifact metadata is missing or inconsistent"))
-    by_id = {item.get("id"): item for item in supplied if isinstance(item, dict)}
-    if len(by_id) != len(supplied):
+    by_id: dict[str, dict[str, Any]] = {}
+    malformed_records = False
+    for item in supplied:
+        identifier = item.get("id") if isinstance(item, dict) else None
+        if not isinstance(identifier, str) or not identifier.strip() or identifier in by_id:
+            malformed_records = True
+            continue
+        by_id[identifier] = item
+    if malformed_records:
         checks.append(_check("G1-CONFLICT-INTEGRITY-001", "FAIL", "conflict artifact contains duplicate or malformed IDs"))
     computed_ids = {item["id"] for item in computed}
     if set(by_id) != computed_ids:
