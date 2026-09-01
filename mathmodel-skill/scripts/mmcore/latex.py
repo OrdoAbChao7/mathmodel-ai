@@ -76,6 +76,18 @@ def _scan_log(path: Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     return warnings, errors
 
 
+def _scan_process_output(text: str, path: Path) -> list[dict[str, Any]]:
+    """Extract environment diagnostics emitted before a TeX log exists."""
+    if "major issue: so far, you have not checked for miktex updates" in text.lower():
+        return [_record(
+            "LATEX-ENV-001",
+            "MiKTeX setup is incomplete; check updates and initialize the local package database",
+            path=path,
+            evidence={"remedy": "Run MiKTeX Console update check, then refresh the user file database."},
+        )]
+    return []
+
+
 def _deduplicate(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     seen: set[tuple[str, str | None]] = set()
     kept: list[dict[str, Any]] = []
@@ -183,6 +195,8 @@ def compile_latex(project: Path, main: Path, engine: str, jobname: str) -> dict[
         stdout_path.write_text(completed.stdout or "", encoding="utf-8")
         stderr_path.write_text(completed.stderr or "", encoding="utf-8")
         result["logs"].extend([str(stdout_path), str(stderr_path)])
+        result["errors"].extend(_scan_process_output(completed.stdout or "", stdout_path))
+        result["errors"].extend(_scan_process_output(completed.stderr or "", stderr_path))
         result["exit_codes"].append(completed.returncode)
         engine_log = output_dir / f"{jobname}.log"
         if engine_log.is_file():

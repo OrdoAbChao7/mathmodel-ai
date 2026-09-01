@@ -95,6 +95,14 @@ class LatexMetricsTests(unittest.TestCase):
         _, errors = _scan_log(log)
         self.assertTrue(any(item["rule"] == "LATEX-ENV-001" for item in errors))
 
+    def test_miktex_setup_issue_in_process_output_is_reported(self):
+        write_complete_audit_project(self.root)
+        with patch("mmcore.latex.subprocess.run", return_value=subprocess.CompletedProcess(
+            ["xelatex"], 1, stdout="", stderr="major issue: So far, you have not checked for MiKTeX updates"
+        )):
+            result = compile_latex(self.root, self.root / "paper" / "main.tex", "xelatex", "paper")
+        self.assertTrue(any(item["rule"] == "LATEX-ENV-001" for item in result["errors"]))
+
     def write_aux(self, *, body_start=1, body_end=28, references_start=29, references_end=30, appendix_start=31, appendix_end=35):
         aux = self.root / "build" / "latex" / "paper.aux"
         aux.parent.mkdir(parents=True, exist_ok=True)
