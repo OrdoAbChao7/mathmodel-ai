@@ -48,6 +48,7 @@ class BenchmarkTests(unittest.TestCase):
                 "problem_interpretation_accuracy": score,
                 "candidate_diversity": score,
                 "model_appropriateness": score,
+                "baseline_quality": score,
                 "validation_completeness": score,
                 "unsupported_claim_count": unsupported,
                 "critical_reviewer_findings": critical,
@@ -59,6 +60,7 @@ class BenchmarkTests(unittest.TestCase):
                 "runtime": 1.0,
                 "token_context_cost": 100.0,
                 "human_intervention_count": 0,
+                "judge_view_clarity": score,
             },
         }
 

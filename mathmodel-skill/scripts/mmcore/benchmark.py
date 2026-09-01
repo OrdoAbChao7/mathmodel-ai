@@ -40,6 +40,7 @@ _REQUIRED_METRICS = {
     "problem_interpretation_accuracy",
     "candidate_diversity",
     "model_appropriateness",
+    "baseline_quality",
     "validation_completeness",
     "unsupported_claim_count",
     "critical_reviewer_findings",
@@ -51,6 +52,7 @@ _REQUIRED_METRICS = {
     "runtime",
     "token_context_cost",
     "human_intervention_count",
+    "judge_view_clarity",
 }
 
 
