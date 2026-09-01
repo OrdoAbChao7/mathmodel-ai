@@ -31,6 +31,8 @@ The `--profile cumcm` and `--mode` options are per-run overrides. They never rew
 
 Formal human-review records are also evidence-bound: every `reviewed_artifacts` path must be a project-relative, existing file. Absolute paths, path traversal, missing files, stale timestamps, and rejected decisions cannot satisfy a checkpoint.
 
+AI-use records are evidence-bound in the same way: every `output_artifacts` entry must point to an existing project-local file, and `accepted`, `human_modified`, and `human_verified` must be real Boolean fields. This prevents a ledger from claiming review of an artifact that was never produced.
+
 The three deterministic fixtures are under `mathmodel-skill/tests/fixtures/`. The real `traning1` project is an integrated example: its configured build runs `solve.py`, `enhance.py`, the LaTeX compiler, page-balance gates, evidence checks, and release packaging. Its current verified output is 38 total pages, 32 body pages, 3 appendix pages, and an appendix/body ratio below 10%.
 
 On this Windows workspace the example uses the bundled Python runtime path in `traning1/mathmodel.json`, because the system Python does not include the numerical and plotting dependencies required by `solve.py`. When moving the project to another machine, replace that interpreter path with a Python environment containing NumPy, SciPy, Matplotlib, and OpenPyXL.

@@ -77,7 +77,20 @@ def _timestamp_ok(value: Any, max_age_days: int) -> bool:
     return 0 <= age <= max_age_days * 86400
 
 
-def _ai_checks(rows: list[dict[str, Any]], errors: list[str], patterns: list[str]) -> list[dict[str, Any]]:
+def _safe_project_file(project: Path, value: Any) -> Path | None:
+    if not _text(value):
+        return None
+    candidate = Path(value)
+    root = Path(project).resolve()
+    if candidate.is_absolute():
+        return None
+    resolved = (root / candidate).resolve()
+    if resolved == root or root not in resolved.parents or not resolved.is_file():
+        return None
+    return resolved
+
+
+def _ai_checks(project: Path, rows: list[dict[str, Any]], errors: list[str], patterns: list[str]) -> list[dict[str, Any]]:
     checks: list[dict[str, Any]] = []
     if errors:
         checks.append(_check("G0-AI-JSONL-001", "FAIL", "AI usage ledger has malformed records", errors=errors))
@@ -90,10 +103,12 @@ def _ai_checks(rows: list[dict[str, Any]], errors: list[str], patterns: list[str
             continue
         serialized = json.dumps(row, ensure_ascii=False)
         sensitive = [pattern for pattern in patterns if re.search(pattern, serialized, re.IGNORECASE)]
-        valid_lists = isinstance(row["output_artifacts"], list) and bool(row["output_artifacts"])
+        valid_lists = (isinstance(row["output_artifacts"], list) and bool(row["output_artifacts"])
+                       and all(_safe_project_file(project, item) is not None for item in row["output_artifacts"]))
+        valid_flags = all(isinstance(row[field], bool) for field in ("accepted", "human_modified", "human_verified"))
         verified = row["human_verified"] is True and (_text(row.get("human_review_id")) if row["accepted"] is True else True)
-        if sensitive or not valid_lists or not verified or not _text(row["prompt_hash"]):
-            checks.append(_check("G0-AI-INTEGRITY-001", "FAIL", "AI usage record fails integrity requirements", id=row.get("id"), sensitive=sensitive, verified=verified))
+        if sensitive or not valid_lists or not valid_flags or not verified or not _text(row["prompt_hash"]):
+            checks.append(_check("G0-AI-INTEGRITY-001", "FAIL", "AI usage record fails integrity requirements", id=row.get("id"), sensitive=sensitive, verified=verified, valid_outputs=valid_lists, valid_flags=valid_flags))
     if rows and not any(check["status"] == "FAIL" for check in checks):
         checks.append(_check("G0-AI-LEDGER-001", "PASS", "AI usage ledger is valid", records=len(rows)))
     return checks
@@ -163,7 +178,7 @@ def evaluate_compliance(project: Path, config: dict[str, Any]) -> dict[str, Any]
     max_age = int(ai_rules.get("max_review_age_days", 30))
     ai_rows, ai_errors = _read_jsonl(Path(project) / "artifacts" / "ai-usage-ledger.jsonl")
     human_rows, human_errors = _read_jsonl(Path(project) / "artifacts" / "human-review-ledger.jsonl")
-    checks = _ai_checks(ai_rows, ai_errors, patterns if isinstance(patterns, list) else [])
+    checks = _ai_checks(Path(project), ai_rows, ai_errors, patterns if isinstance(patterns, list) else [])
     human_checks, missing = _human_checks(Path(project), human_rows, human_errors, gates, max_age)
     checks.extend(human_checks)
     status = "PASS" if checks and all(check["status"] == "PASS" for check in checks) else "FAIL"

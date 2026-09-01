@@ -43,6 +43,7 @@ class ComplianceTests(unittest.TestCase):
         self.cfg = {"contest": "CUMCM", "execution_mode": "competition_assisted"}
         (self.root / "artifacts").mkdir()
         (self.root / "artifacts" / "problem-map.json").write_text("{}", encoding="utf-8")
+        (self.root / "artifacts" / "candidate-registry.json").write_text("{}", encoding="utf-8")
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -83,6 +84,16 @@ class ComplianceTests(unittest.TestCase):
         report = evaluate_compliance(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
         self.assertTrue(any(check["rule"] == "G0-HUMAN-INTEGRITY-001" for check in report["checks"]))
+
+    def test_ai_ledger_requires_existing_project_local_outputs_and_boolean_flags(self):
+        ai, human = valid_rows()
+        ai["output_artifacts"] = ["artifacts/missing-output.json"]
+        ai["accepted"] = "yes"
+        write_jsonl(self.root / "artifacts" / "ai-usage-ledger.jsonl", [ai])
+        write_jsonl(self.root / "artifacts" / "human-review-ledger.jsonl", human)
+        report = evaluate_compliance(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertTrue(any(check["rule"] == "G0-AI-INTEGRITY-001" for check in report["checks"]))
 
     def test_research_mode_is_not_applicable(self):
         report = evaluate_compliance(self.root, {"contest": "CUMCM", "execution_mode": "research_autonomous"})
