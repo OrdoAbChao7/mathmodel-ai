@@ -54,6 +54,7 @@ _REQUIRED_METRICS = {
     "human_intervention_count",
     "judge_view_clarity",
 }
+_REQUIRED_CONTROL_FIELDS = {"provider", "model", "budget", "evidence"}
 
 
 def _canonical(value: Any) -> str:
@@ -129,7 +130,7 @@ def _validate_result(result: Any, case_id: str, variant: str) -> dict[str, Any]:
             raise BenchmarkError(f"{variant} metric {name} is not a finite number for case {case_id}")
         clean["metrics"][name] = float(value)
     control = result.get("control")
-    if not isinstance(control, dict):
+    if not isinstance(control, dict) or not _REQUIRED_CONTROL_FIELDS <= control.keys():
         raise BenchmarkError(f"{variant} control metadata is missing for case {case_id}")
     clean["control"] = control
     return clean
@@ -151,6 +152,8 @@ def compare_metrics(baseline: dict[str, float], candidate: dict[str, float]) -> 
     for name in sorted(baseline):
         base = float(baseline[name])
         new = float(candidate[name])
+        if not math.isfinite(base) or not math.isfinite(new):
+            raise BenchmarkError(f"metric {name} must contain finite values")
         delta = new - base
         relative = delta / abs(base) if base else delta
         if name in _LOWER_IS_BETTER:

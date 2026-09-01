@@ -707,7 +707,7 @@ def main(argv: list[str] | None = None) -> int:
             registry = load_case_registry(project, args.registry)
             result = run_configured_benchmark(project, cfg, registry, repeats=args.repeats)
             result["report_path"] = write_benchmark_report(project, result)
-        except (ConfigError, BenchmarkError) as exc:
+        except (ConfigError, BenchmarkError, OSError, TypeError, ValueError) as exc:
             result = {"status": "FAIL", "errors": [str(exc)]}
         if args.json:
             print(json.dumps(result, ensure_ascii=False))
