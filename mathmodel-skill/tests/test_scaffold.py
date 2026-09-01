@@ -32,6 +32,7 @@ class ScaffoldTests(unittest.TestCase):
         config = load_config(self.root)
         self.assertEqual(config["project_id"], "demo-001")
         self.assertEqual(config["title"], "Demo")
+        self.assertEqual(config["schema_version"], 2)
 
     def test_init_never_overwrites_existing_file(self):
         old = self.root / "paper" / "main.tex"
