@@ -43,7 +43,10 @@ class ExternalCapabilityTests(unittest.TestCase):
         self.write_config()
         report = evaluate_capability_configuration(self.root)
         self.assertEqual(report["status"], "PASS", report)
-        self.assertEqual(resolve_adapter(self.root, "red_team", "ars")["authority"], "findings_only")
+        adapter = resolve_adapter(self.root, "red_team", "ars")
+        self.assertEqual(adapter["authority"], "findings_only")
+        self.assertEqual(adapter["gate_authority"], [])
+        self.assertIn("local gates decide", adapter["output_contract"])
 
     def test_floating_commit_fails_closed(self):
         self.config["sources"][0]["pinned_commit"] = "main"

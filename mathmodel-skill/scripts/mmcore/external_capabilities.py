@@ -98,4 +98,16 @@ def resolve_adapter(project: Path, capability_id: str, provider_id: str) -> dict
     source = next((item for item in sources.get("sources", []) if item.get("id") == provider_id), None)
     if not isinstance(capability, dict) or not isinstance(source, dict) or provider_id not in capability.get("providers", []):
         return {"status": "FAIL", "checks": [_check("ADAPTER-RESOLVE-001", "FAIL", "requested adapter is not registered")]}
-    return {"status": "PASS", "capability": capability_id, "provider": provider_id, "pinned_commit": source["pinned_commit"], "integration_mode": source["integration_mode"], "authority": _ADAPTER_AUTHORITY.get(provider_id, "read_only"), "external_decision_allowed": False}
+    authority = _ADAPTER_AUTHORITY.get(provider_id, "read_only")
+    return {
+        "status": "PASS",
+        "capability": capability_id,
+        "provider": provider_id,
+        "pinned_commit": source["pinned_commit"],
+        "integration_mode": source["integration_mode"],
+        "authority": authority,
+        "external_decision_allowed": False,
+        "input_contract": "local evidence context only",
+        "output_contract": "advisory artifacts/findings; local gates decide PASS/FAIL",
+        "gate_authority": [],
+    }
