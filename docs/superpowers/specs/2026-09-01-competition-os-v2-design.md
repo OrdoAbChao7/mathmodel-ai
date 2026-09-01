@@ -22,6 +22,10 @@
 - `mathmodel-skill/scripts/mathmodel.py`: expose read-only `authority` diagnostics without changing build/audit contracts.
 - `mathmodel-skill/tests/`: red/green tests for missing checks, unknown schema, conflicts, and external PASS rejection.
 
+## Competition-facing score view
+
+The internal eight-dimension score remains the compatibility and release-gate score. For CUMCM review, the quality report additionally emits `official_judge_view` with four weighted dimensions: modeling reasonableness (30), modeling creativity (20), result correctness and trust (30), and communication clarity (20). Each entry retains its assessment status and the internal evidence dimensions used to form it. This is a diagnostic projection only; it cannot override hard failures, missing human signoffs, or other release gates. Modeling creativity is deliberately `UNASSESSED` unless the governed innovation-review layer supplies explicit, evidence-backed assessment.
+
 ## Non-goals
 
 Do not implement human H1-H4 ledgers, model tournaments, validators, freeze manifests, adapters, benchmark harnesses, or a unified `run` command in Phase 0.

@@ -137,6 +137,22 @@ class QualityTests(unittest.TestCase):
         self.assertEqual(set(scored["unassessed_dimensions"]), set(scored["weights"]))
         self.assertTrue(all(detail["assessment_status"] == "UNASSESSED" for detail in scored["dimensions"].values()))
 
+    def test_official_judge_view_exposes_four_competition_dimensions_without_inventing_creativity(self):
+        scored = score_quality([])
+        view = scored["official_judge_view"]
+        self.assertEqual(set(view["dimensions"]), {
+            "modeling_reasonableness", "modeling_creativity",
+            "result_correctness_trust", "communication_clarity",
+        })
+        self.assertEqual(view["weights"], {
+            "modeling_reasonableness": 30,
+            "modeling_creativity": 20,
+            "result_correctness_trust": 30,
+            "communication_clarity": 20,
+        })
+        self.assertEqual(view["dimensions"]["modeling_creativity"]["assessment_status"], "UNASSESSED")
+        self.assertLess(view["total"], 100)
+
     def test_missing_claim_support_is_hard_failure(self):
         write_artifacts(self.root, result_ids=["R-1"], claim_support=["R-missing"])
         report = validate_artifacts(self.root, REQUIRED)

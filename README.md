@@ -58,3 +58,5 @@ Formal validation also requires `artifacts/experiment-registry.json`; its record
 At G9, release hash entries are independently recomputed against current project files; a forged `PASS`, stale digest, duplicate path, or unsafe path blocks submission.
 
 G9 also binds the quality report to its current source manifest and reproducibility summary, including the current configuration hash.
+
+The quality report exposes two complementary scorecards. `dimensions` preserves the eight-dimensional internal gate score used for release decisions; `official_judge_view` maps the same evidence into the four CUMCM-facing dimensions—modeling reasonableness (30), modeling creativity (20), result correctness and trust (30), and communication clarity (20). The mapping is diagnostic and does not weaken hard gates. In particular, creativity remains `UNASSESSED` until an innovation-specific, evidence-backed human assessment is recorded; algorithm names or polished prose are not treated as innovation proof.

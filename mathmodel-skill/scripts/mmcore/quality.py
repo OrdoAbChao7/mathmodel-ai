@@ -36,6 +36,23 @@ RULE_DIMENSIONS = {
     "VALIDATION-STATUS-001": "validation_robustness",
 }
 
+OFFICIAL_JUDGE_WEIGHTS = {
+    "modeling_reasonableness": 30,
+    "modeling_creativity": 20,
+    "result_correctness_trust": 30,
+    "communication_clarity": 20,
+}
+
+_OFFICIAL_COMPONENTS = {
+    "modeling_reasonableness": ("problem_coverage", "model_rigor"),
+    # Creativity is intentionally not inferred from algorithm names or prose.
+    # It becomes assessed only when a future innovation-specific assessment is
+    # supplied by the governed review layer.
+    "modeling_creativity": (),
+    "result_correctness_trust": ("validation_robustness", "result_claim_evidence"),
+    "communication_clarity": ("body_expression", "figures", "latex"),
+}
+
 
 def _machine_score(checks: list[dict[str, Any]], dimension: str, weight: int) -> tuple[int, str]:
     relevant = [check for check in checks if RULE_DIMENSIONS.get(check.get("rule")) == dimension]
@@ -72,6 +89,29 @@ def _validate_manual(manual: Any) -> tuple[dict[str, int], list[str], str]:
     return scores, [], "PENDING"
 
 
+def _official_judge_view(dimensions: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    official: dict[str, dict[str, Any]] = {}
+    for name, weight in OFFICIAL_JUDGE_WEIGHTS.items():
+        components = _OFFICIAL_COMPONENTS[name]
+        component_details = [dimensions[item] for item in components]
+        assessed = bool(component_details) and all(item.get("assessment_status") != "UNASSESSED" for item in component_details)
+        if assessed:
+            raw_score = sum(item["score"] for item in component_details)
+            raw_weight = sum(item["weight"] for item in component_details)
+            score = round(weight * raw_score / raw_weight) if raw_weight else 0
+            status = "ASSESSED"
+        else:
+            score = 0
+            status = "UNASSESSED"
+        official[name] = {"score": score, "weight": weight, "assessment_status": status, "components": list(components)}
+    return {
+        "dimensions": official,
+        "weights": OFFICIAL_JUDGE_WEIGHTS,
+        "total": sum(item["score"] for item in official.values()),
+        "assessment_status": "ASSESSED" if all(item["assessment_status"] == "ASSESSED" for item in official.values()) else "UNASSESSED",
+    }
+
+
 def score_quality(checks: list[dict[str, Any]], manual: dict | None = None) -> dict[str, Any]:
     """Return dimension scores, weighted total, hard failures, and release status."""
     manual_scores, manual_errors, manual_review = _validate_manual(manual)
@@ -101,6 +141,7 @@ def score_quality(checks: list[dict[str, Any]], manual: dict | None = None) -> d
         if check.get("severity") == "FAIL" and check.get("status") == "FAIL"
     ]
     total = sum(dimension["score"] for dimension in dimensions.values())
+    official_judge_view = _official_judge_view(dimensions)
     if manual_errors:
         release_status = "FAIL"
     elif hard_failures:
@@ -123,4 +164,5 @@ def score_quality(checks: list[dict[str, Any]], manual: dict | None = None) -> d
         "manual_errors": manual_errors,
         "unassessed_dimensions": unassessed_dimensions,
         "release_status": release_status,
+        "official_judge_view": official_judge_view,
     }
