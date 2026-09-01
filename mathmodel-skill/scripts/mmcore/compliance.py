@@ -156,3 +156,29 @@ def requires_formal_compliance(config: dict[str, Any]) -> bool:
     return config.get("execution_mode", "research_autonomous") in set(
         profile.get("formal_modes", ("competition_assisted", "competition_max"))
     )
+
+
+def evaluate_human_checkpoints(project: Path, config: dict[str, Any], required_gates: tuple[str, ...]) -> dict[str, Any]:
+    """Check only the human gates needed before one orchestrated stage.
+
+    This is deliberately separate from the final all-gates compliance report:
+    a formal pipeline may proceed from H1/H2 to build while H3/H4 are still
+    legitimately pending, but it must stop before crossing either checkpoint.
+    """
+    if not requires_formal_compliance(config):
+        return {"status": "NOT_APPLICABLE", "required_human_gates": list(required_gates), "missing_human_gates": [], "checks": []}
+    ai_rules_path = Path(__file__).resolve().parents[2] / "profiles" / "cumcm" / "ai-rules.yaml"
+    try:
+        ai_rules = yaml.safe_load(ai_rules_path.read_text(encoding="utf-8")) or {}
+    except (OSError, UnicodeDecodeError, yaml.YAMLError):
+        ai_rules = {}
+    max_age = int(ai_rules.get("max_review_age_days", 30))
+    human_rows, human_errors = _read_jsonl(Path(project) / "artifacts" / "human-review-ledger.jsonl")
+    checks, missing = _human_checks(human_rows, human_errors, required_gates, max_age)
+    failed = [check for check in checks if check.get("status") == "FAIL"]
+    return {
+        "status": "PASS" if not missing and not failed else "BLOCKED_HUMAN_INPUT",
+        "required_human_gates": list(required_gates),
+        "missing_human_gates": missing,
+        "checks": checks,
+    }

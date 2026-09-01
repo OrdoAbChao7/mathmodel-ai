@@ -76,6 +76,32 @@ class OrchestrationTests(unittest.TestCase):
         self.assertEqual(result["status"], "PASS", result)
         self.assertEqual(len(calls), 5)
 
+    def test_formal_pipeline_stops_for_human_checkpoints_before_build(self):
+        calls = []
+        config = {"execution_mode": "competition_assisted", "orchestration": {"max_retries": 0}}
+        result = run_pipeline(self.root, config, runner=lambda stage: calls.append(stage) or self.stage_outcome(stage), now=self.now)
+        self.assertEqual(result["status"], "BLOCKED_HUMAN_INPUT")
+        self.assertEqual(result["blocked_stage"], "build")
+        self.assertEqual(result["missing_human_gates"], ["H1_PROBLEM_UNDERSTANDING", "H2_METHOD_SELECTION"])
+        self.assertEqual(calls, [])
+
+    def test_formal_pipeline_stops_at_audit_until_h3_is_signed(self):
+        ledger = self.root / "artifacts" / "human-review-ledger.jsonl"
+        ledger.parent.mkdir()
+        now = self.now.isoformat()
+        ledger.write_text("\n".join(json.dumps({
+            "id": gate.lower(), "gate": gate, "reviewed_artifacts": ["artifacts/evidence.json"],
+            "reviewer_name": "contestant", "reviewer_role": "team", "timestamp": now,
+            "decision": "APPROVED", "evidence_notes": "Reviewed by the team.",
+        }) for gate in ("H1_PROBLEM_UNDERSTANDING", "H2_METHOD_SELECTION")) + "\n", encoding="utf-8")
+        calls = []
+        config = {"execution_mode": "competition_assisted", "orchestration": {"max_retries": 0}}
+        result = run_pipeline(self.root, config, runner=lambda stage: calls.append(stage) or self.stage_outcome(stage), now=self.now)
+        self.assertEqual(result["status"], "BLOCKED_HUMAN_INPUT")
+        self.assertEqual(result["blocked_stage"], "audit")
+        self.assertEqual(result["missing_human_gates"], ["H3_RESULT_VERIFICATION"])
+        self.assertEqual(calls, ["build"])
+
     def test_pipeline_resume_skips_completed_stage(self):
         calls = []
         def runner(stage):

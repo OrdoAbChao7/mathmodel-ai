@@ -11,10 +11,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
+from ..compliance import evaluate_human_checkpoints
 from .time_budget import evaluate_budget
 
 
 _STAGES = ("build", "audit", "package")
+_FORMAL_STAGE_GATES = {
+    "build": ("H1_PROBLEM_UNDERSTANDING", "H2_METHOD_SELECTION"),
+    "audit": ("H3_RESULT_VERIFICATION",),
+    "package": ("H4_FINAL_SUBMISSION",),
+}
 
 
 def _state_path(project: Path) -> Path:
@@ -185,6 +191,16 @@ def run_pipeline(project: Path, config: dict[str, Any], runner: Callable[[str], 
             return {"status": "FAIL", "budget": current_budget, "stages": results, "errors": current_budget.get("errors", [])}
         if current_budget.get("status") == "EXPIRED" or (current_budget.get("status") == "ACTIVE" and current_budget.get("remaining_seconds", 0) <= current_budget.get("submission_buffer_seconds", 0)):
             return {"status": "BLOCKED_TIME_BUDGET", "budget": current_budget, "stages": results}
+        checkpoint = evaluate_human_checkpoints(root, config, _FORMAL_STAGE_GATES[stage])
+        if checkpoint.get("status") == "BLOCKED_HUMAN_INPUT":
+            return {
+                "status": "BLOCKED_HUMAN_INPUT",
+                "blocked_stage": stage,
+                "missing_human_gates": checkpoint.get("missing_human_gates", []),
+                "human_checkpoint": checkpoint,
+                "budget": current_budget,
+                "stages": results,
+            }
         saved = state.get("stages", {}).get(stage)
         if resume and isinstance(saved, dict) and saved.get("status") == "PASS":
             snapshot = _evidence_snapshot(root, stage)
