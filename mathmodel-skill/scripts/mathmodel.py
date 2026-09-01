@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from mmcore.analysis import collect_outputs, run_analysis
+from mmcore.authority import accept_external_status, load_json, validate_schema_version
 from mmcore.config import ConfigError, load_config
 from mmcore.contracts import REQUIRED_ARTIFACTS, validate_artifacts
 from mmcore.manifest import inventory_project, new_run, update_stage, sha256_file
@@ -127,6 +128,32 @@ def _write_quality_reports(
         lines.append(f"- [{gate['status']}] {gate['rule']} ({gate['severity']}): {gate['message']}")
     md_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return json_path, md_path, report
+
+
+def _authority_report(project: Path) -> dict:
+    """Report local authority readiness without trusting external status."""
+    skill_root = Path(__file__).resolve().parents[1]
+    constitution = project / "CONSTITUTION.md"
+    if not constitution.is_file():
+        constitution = skill_root / "CONSTITUTION.md"
+    schemas = (skill_root / "schemas" / "capability-registry.v1.json", skill_root / "schemas" / "source-registry.v1.json")
+    registries = {
+        "capability_registry": project / "artifacts" / "capability-registry.json",
+        "source_registry": project / "artifacts" / "source-registry.json",
+    }
+    registry_status = {}
+    for name, path in registries.items():
+        if not path.is_file():
+            registry_status[name] = "UNASSESSED"
+            continue
+        loaded = load_json(path)
+        registry_status[name] = "FAIL" if loaded["status"] != "PASS" else validate_schema_version(loaded["record"])
+    return {
+        "constitution": "PASS" if constitution.is_file() else "FAIL",
+        "schemas": "PASS" if all(path.is_file() for path in schemas) else "FAIL",
+        "registries": registry_status,
+        "external_authority": accept_external_status("RELEASE=PASS"),
+    }
 
 
 def _measure_current_pdf(project: Path, cfg: dict) -> dict:
@@ -290,6 +317,9 @@ def main(argv: list[str] | None = None) -> int:
     package_parser = subparsers.add_parser("package")
     package_parser.add_argument("project")
     package_parser.add_argument("--json", action="store_true")
+    authority_parser = subparsers.add_parser("authority")
+    authority_parser.add_argument("project")
+    authority_parser.add_argument("--json", action="store_true")
     try:
         args = parser.parse_args(argv)
     except SystemExit as exc:
@@ -467,6 +497,13 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(f"package: {result['status']} ({result.get('pdf', result.get('project', project))})")
         return 0 if result["status"] == "PASS" else 1
+    if args.command == "authority":
+        report = _authority_report(Path(args.project).resolve())
+        if args.json:
+            print(json.dumps(report, ensure_ascii=False))
+        else:
+            print(f"authority: {report['constitution']} schemas={report['schemas']}")
+        return 0 if report["constitution"] == "PASS" and report["schemas"] == "PASS" else 1
     if args.command is None:
         parser.print_help()
         return 0

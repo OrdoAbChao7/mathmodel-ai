@@ -30,7 +30,12 @@ def _selected_pdf(project: Path, report: dict[str, Any]) -> Path | None:
     if declared is not None:
         candidates = [declared]
     else:
-        candidates = [report.get("pdf"), report.get("build", {}).get("pdf") if isinstance(report.get("build"), dict) else None]
+        metrics = report.get("page_metrics") if isinstance(report.get("page_metrics"), dict) else {}
+        candidates = [
+            report.get("pdf"),
+            report.get("build", {}).get("pdf") if isinstance(report.get("build"), dict) else None,
+            metrics.get("pdf"),
+        ]
     for candidate in candidates:
         if isinstance(candidate, str):
             path = Path(candidate)

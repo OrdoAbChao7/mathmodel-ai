@@ -73,6 +73,14 @@ class ReleaseAuditTests(unittest.TestCase):
         self.assertIn("source_snapshot", manifest)
         self.assertIn("reproducibility", manifest)
 
+    def test_package_uses_page_metrics_pdf_when_audit_report_has_no_compile_block(self):
+        report = dict(self.report)
+        report.pop("compile", None)
+        report.pop("pdf", None)
+        report["page_metrics"] = {**report["metrics"], "pdf": self.report["compile"]["pdf"]}
+        result = package(self.root, report)
+        self.assertEqual(result["status"], "PASS", result)
+
 
 if __name__ == "__main__":
     unittest.main()

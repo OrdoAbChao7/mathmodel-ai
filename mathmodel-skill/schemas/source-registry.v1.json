@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mathmodel://schema/source-registry.v1",
+  "title": "MathModel external source registry",
+  "type": "object",
+  "required": ["schema_version", "sources"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "sources": {"type": "array", "items": {"type": "object", "required": ["id", "repository", "license", "integration_mode"], "properties": {"id": {"type": "string", "minLength": 1}, "repository": {"type": "string", "minLength": 1}, "license": {"type": "string", "minLength": 1}, "integration_mode": {"enum": ["ABSTRACT_INSPIRED", "EXTERNAL_ADAPTER", "REIMPLEMENTED"]}}}}
+  },
+  "additionalProperties": true
+}

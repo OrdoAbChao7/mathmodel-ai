@@ -2,6 +2,8 @@ import json
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 
 
@@ -67,6 +69,15 @@ class ConfigTests(unittest.TestCase):
 
     def test_main_help_returns_zero(self):
         self.assertEqual(main(["--help"]), 0)
+
+    def test_authority_command_reports_local_constitution(self):
+        (self.root / "CONSTITUTION.md").write_text("local authority", encoding="utf-8")
+        output = StringIO()
+        with redirect_stdout(output):
+            self.assertEqual(main(["authority", str(self.root), "--json"]), 0)
+        report = json.loads(output.getvalue())
+        self.assertEqual(report["constitution"], "PASS")
+        self.assertEqual(report["external_authority"], "REJECTED")
 
 
 if __name__ == "__main__":

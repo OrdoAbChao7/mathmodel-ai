@@ -130,6 +130,13 @@ class QualityTests(unittest.TestCase):
     def tearDown(self):
         self._tempdir.cleanup()
 
+    def test_missing_machine_checks_are_unassessed_and_block_release(self):
+        scored = score_quality([])
+        self.assertEqual(scored["release_status"], "PENDING_MANUAL_REVIEW")
+        self.assertEqual(scored["total"], 0)
+        self.assertEqual(set(scored["unassessed_dimensions"]), set(scored["weights"]))
+        self.assertTrue(all(detail["assessment_status"] == "UNASSESSED" for detail in scored["dimensions"].values()))
+
     def test_missing_claim_support_is_hard_failure(self):
         write_artifacts(self.root, result_ids=["R-1"], claim_support=["R-missing"])
         report = validate_artifacts(self.root, REQUIRED)

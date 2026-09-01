@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mathmodel://schema/capability-registry.v1",
+  "title": "MathModel capability registry",
+  "type": "object",
+  "required": ["schema_version", "capabilities"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "capabilities": {"type": "array", "items": {"type": "object", "required": ["id", "name", "status"], "properties": {"id": {"type": "string", "minLength": 1}, "name": {"type": "string", "minLength": 1}, "status": {"enum": ["EXPERIMENTAL", "OPTIONAL", "DEFAULT", "REJECTED"]}}}}
+  },
+  "additionalProperties": true
+}

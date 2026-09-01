@@ -37,12 +37,12 @@ RULE_DIMENSIONS = {
 }
 
 
-def _machine_score(checks: list[dict[str, Any]], dimension: str, weight: int) -> int:
+def _machine_score(checks: list[dict[str, Any]], dimension: str, weight: int) -> tuple[int, str]:
     relevant = [check for check in checks if RULE_DIMENSIONS.get(check.get("rule")) == dimension]
     if not relevant:
-        return weight
+        return 0, "UNASSESSED"
     passed = sum(1 for check in relevant if check.get("status") == "PASS")
-    return round(weight * passed / len(relevant))
+    return round(weight * passed / len(relevant)), "ASSESSED"
 
 
 def _validate_manual(manual: Any) -> tuple[dict[str, int], list[str], str]:
@@ -76,15 +76,24 @@ def score_quality(checks: list[dict[str, Any]], manual: dict | None = None) -> d
     """Return dimension scores, weighted total, hard failures, and release status."""
     manual_scores, manual_errors, manual_review = _validate_manual(manual)
     dimensions: dict[str, dict[str, Any]] = {}
+    unassessed_dimensions: list[str] = []
     for dimension, weight in DIMENSION_WEIGHTS.items():
         if dimension in manual_scores:
             score = manual_scores[dimension]
             source = "manual"
+            assessment_status = "HUMAN_ASSESSED"
         else:
-            score = _machine_score(checks, dimension, weight)
+            score, assessment_status = _machine_score(checks, dimension, weight)
             source = "machine"
+            if assessment_status == "UNASSESSED":
+                unassessed_dimensions.append(dimension)
         score = max(0, min(weight, score))
-        dimensions[dimension] = {"score": score, "weight": weight, "source": source}
+        dimensions[dimension] = {
+            "score": score,
+            "weight": weight,
+            "source": source,
+            "assessment_status": assessment_status,
+        }
 
     hard_failures = [
         check
@@ -96,6 +105,8 @@ def score_quality(checks: list[dict[str, Any]], manual: dict | None = None) -> d
         release_status = "FAIL"
     elif hard_failures:
         release_status = "FAIL"
+    elif unassessed_dimensions:
+        release_status = "PENDING_MANUAL_REVIEW"
     elif manual_review == "PENDING":
         release_status = "PENDING_MANUAL_REVIEW"
     elif total >= 85:
@@ -110,5 +121,6 @@ def score_quality(checks: list[dict[str, Any]], manual: dict | None = None) -> d
         "hard_failures": hard_failures,
         "manual_review": manual_review,
         "manual_errors": manual_errors,
+        "unassessed_dimensions": unassessed_dimensions,
         "release_status": release_status,
     }
