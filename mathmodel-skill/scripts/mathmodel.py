@@ -17,7 +17,7 @@ from mmcore.semantic_validation import evaluate_semantic_validation
 from mmcore.architecture_freeze import evaluate_model_architecture, evaluate_results_freeze
 from mmcore.paper_review import evaluate_review_registry, evaluate_writer_package
 from mmcore.max_rigor import evaluate_max_rigor
-from mmcore.external_capabilities import evaluate_capability_configuration
+from mmcore.external_capabilities import evaluate_capability_configuration, resolve_adapter
 from mmcore.orchestration.orchestrator import run_pipeline
 from mmcore.benchmark import BenchmarkError, load_case_registry, run_configured_benchmark, write_benchmark_report
 from mmcore.submission import evaluate_submission
@@ -521,6 +521,11 @@ def main(argv: list[str] | None = None) -> int:
     authority_parser = subparsers.add_parser("authority")
     authority_parser.add_argument("project")
     authority_parser.add_argument("--json", action="store_true")
+    capability_parser = subparsers.add_parser("capability")
+    capability_parser.add_argument("project")
+    capability_parser.add_argument("--capability", dest="capability_id")
+    capability_parser.add_argument("--provider", dest="provider_id")
+    capability_parser.add_argument("--json", action="store_true")
     migrate_parser = subparsers.add_parser("migrate")
     migrate_parser.add_argument("project")
     migrate_parser.add_argument("--dry-run", action="store_true")
@@ -865,6 +870,23 @@ def main(argv: list[str] | None = None) -> int:
         registry_values = report["registries"].values()
         registries_ok = all(value in {"PASS", "UNASSESSED"} for value in registry_values)
         return 0 if report["constitution"] == "PASS" and report["schemas"] == "PASS" and registries_ok else 1
+    if args.command == "capability":
+        project = Path(args.project).resolve()
+        try:
+            if bool(args.capability_id) != bool(args.provider_id):
+                raise ValueError("--capability and --provider must be supplied together")
+            result = (
+                resolve_adapter(project, args.capability_id, args.provider_id)
+                if args.capability_id and args.provider_id
+                else evaluate_capability_configuration(project)
+            )
+        except (OSError, TypeError, ValueError) as exc:
+            result = {"status": "FAIL", "checks": [{"rule": "CAPABILITY-CLI-001", "status": "FAIL", "message": str(exc), "evidence": {}}]}
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False))
+        else:
+            print(f"capability: {result['status']} ({project})")
+        return 0 if result["status"] == "PASS" else 1
     if args.command in {"frame", "screen", "select", "validate", "freeze", "review", "signoff", "compliance"}:
         try:
             result = _stage_report(Path(args.project), args.command)

@@ -15,6 +15,9 @@ python mathmodel-skill/scripts/mathmodel.py init <project> --id <id> --title <ti
 python mathmodel-skill/scripts/mathmodel.py inspect <project> --json
 python mathmodel-skill/scripts/mathmodel.py build <project> --json
 python mathmodel-skill/scripts/mathmodel.py audit <project> --json
+python mathmodel-skill/scripts/mathmodel.py capability <project> --json
+# resolve one bounded, read-only external provider
+python mathmodel-skill/scripts/mathmodel.py capability <project> --capability red_team --provider ars --json
 python mathmodel-skill/scripts/mathmodel.py package <project> --json
 python mathmodel-skill/scripts/mathmodel.py run <project> --json
 # one-run formal profile/mode override (does not rewrite mathmodel.json)
@@ -24,6 +27,8 @@ python mathmodel-skill/scripts/mathmodel.py init <project> --id ID --title TITLE
 ```
 
 The same pipeline stages are available as read-only diagnostics: `frame`, `screen`, `select`, `validate`, `freeze`, `review`, `signoff`, and `compliance`. They reuse the evaluators used by `audit`; they do not create an alternate release path.
+
+`capability` validates the pinned capability/source registries. With `--capability` and `--provider`, it returns a bounded adapter manifest only; external providers can supply knowledge or review findings, but cannot select models, freeze results, or declare release success. The command never executes external repository code.
 
 Use `mathmodel migrate PROJECT --dry-run --json` to preview v1 core-artifact migrations, or omit `--dry-run` to upgrade v1 JSON files under `artifacts/` to v2. JSONL ledgers are intentionally not rewritten; their append-only history remains intact.
 

@@ -252,6 +252,29 @@ class ConfigTests(unittest.TestCase):
         report = json.loads(output.getvalue())
         self.assertEqual(report["registries"]["capability_registry"], "FAIL")
 
+    def test_capability_command_resolves_read_only_external_adapter(self):
+        output = StringIO()
+        with redirect_stdout(output):
+            self.assertEqual(main([
+                "capability", str(self.root),
+                "--capability", "red_team",
+                "--provider", "ars",
+                "--json",
+            ]), 0)
+        report = json.loads(output.getvalue())
+        self.assertEqual(report["status"], "PASS")
+        self.assertEqual(report["authority"], "findings_only")
+        self.assertEqual(report["gate_authority"], [])
+        self.assertFalse(report["external_decision_allowed"])
+
+    def test_capability_command_reports_registry_without_resolution(self):
+        output = StringIO()
+        with redirect_stdout(output):
+            self.assertEqual(main(["capability", str(self.root), "--json"]), 0)
+        report = json.loads(output.getvalue())
+        self.assertEqual(report["status"], "PASS")
+        self.assertIn("candidate_generation", report["capabilities"])
+
     def test_run_cli_accepts_cumcm_profile_and_mode_without_rewriting_config(self):
         config = valid_config()
         write_json(self.root / "mathmodel.json", config)
