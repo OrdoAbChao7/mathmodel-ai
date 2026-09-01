@@ -66,7 +66,12 @@ def _safe_path(project: Path, value: Any) -> tuple[Path | None, str | None]:
 
 
 def _number(value: Any) -> bool:
-    return not isinstance(value, bool) and isinstance(value, (int, float)) and math.isfinite(float(value))
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    try:
+        return math.isfinite(float(value))
+    except (OverflowError, ValueError):
+        return False
 
 
 def _validation_checks(project: Path, data: dict[str, Any], required: tuple[str, ...]) -> tuple[list[dict[str, Any]], list[str]]:
@@ -161,6 +166,10 @@ def evaluate_semantic_validation(project: Path, config: dict[str, Any]) -> dict[
         return {"status": "FAIL", "mode": "INVALID", "g4": {"status": "FAIL", "checks": [check]}, "g5": {"status": "FAIL", "checks": []}}
     if mode not in formal_modes:
         return {"status": "NOT_APPLICABLE", "mode": mode, "g4": {"status": "NOT_APPLICABLE", "checks": []}, "g5": {"status": "NOT_APPLICABLE", "checks": []}}
+    problem_type = config.get("problem_type")
+    if not isinstance(problem_type, str) or not problem_type.strip():
+        check = _check("G4-CONFIG-002", "FAIL", "problem_type must be a non-empty string", actual_type=type(problem_type).__name__)
+        return {"status": "FAIL", "mode": mode, "g4": {"status": "FAIL", "checks": [check]}, "g5": {"status": "FAIL", "checks": []}}
     validation_data, validation_error = _read_json(Path(project) / "artifacts" / "validation.json")
     g4_checks = []
     if validation_error:
@@ -169,7 +178,7 @@ def evaluate_semantic_validation(project: Path, config: dict[str, Any]) -> dict[
     else:
         if validation_data.get("schema_version") != 1:
             g4_checks.append(_check("G4-ARTIFACT-METADATA-001", "FAIL", "validation artifact schema_version must be 1"))
-        requirements = tuple(profile.get("validation_requirements", {}).get(config.get("problem_type"), _DEFAULT_REQUIREMENTS.get(config.get("problem_type"), ())))
+        requirements = tuple(profile.get("validation_requirements", {}).get(problem_type, _DEFAULT_REQUIREMENTS.get(problem_type, ())))
         validation_checks, validation_ids = _validation_checks(Path(project), validation_data, requirements)
         g4_checks.extend(validation_checks)
         raw = validation_data.get("validations")

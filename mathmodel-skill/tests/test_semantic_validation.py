@@ -133,6 +133,21 @@ class SemanticValidationTests(unittest.TestCase):
         report = evaluate_semantic_validation(self.root, self.cfg)
         self.assertEqual(report["g4"]["status"], "FAIL")
 
+    def test_extremely_large_numeric_evidence_returns_structured_failure(self):
+        self.install_valid()
+        validation = json.loads((self.root / "artifacts/validation.json").read_text(encoding="utf-8"))
+        validation["validations"][0]["observed"] = 10**1000
+        write_json(self.root, "artifacts/validation.json", validation)
+        report = evaluate_semantic_validation(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["g4"]["status"], "FAIL")
+
+    def test_malformed_problem_type_returns_structured_failure(self):
+        self.install_valid()
+        report = evaluate_semantic_validation(self.root, {**self.cfg, "problem_type": []})
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["g4"]["status"], "FAIL")
+
     def test_hybrid_problem_type_requires_profiled_semantic_checks(self):
         self.install_valid()
         report = evaluate_semantic_validation(self.root, {**self.cfg, "problem_type": "hybrid"})
