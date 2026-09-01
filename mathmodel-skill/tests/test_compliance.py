@@ -32,6 +32,8 @@ def valid_rows():
             "id": f"HR-{number:04d}", "gate": gate, "reviewed_artifacts": ["artifacts/problem-map.json"],
             "reviewer_name": "Human Reviewer", "reviewer_role": "team member", "timestamp": now,
             "decision": "APPROVED", "evidence_notes": "Reviewed evidence and recorded the decision.",
+            "human_reasoning_summary": "The evidence supports the recorded stage decision.",
+            "verified_points": ["reviewed linked artifacts", "checked the stage decision"],
         })
     return ai, human
 
@@ -75,6 +77,17 @@ class ComplianceTests(unittest.TestCase):
         write_jsonl(self.root / "artifacts" / "human-review-ledger.jsonl", human)
         report = evaluate_compliance(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
+
+    def test_human_signoff_requires_reasoning_and_verified_points(self):
+        ai, human = valid_rows()
+        human[0].pop("human_reasoning_summary")
+        human[1]["verified_points"] = []
+        write_jsonl(self.root / "artifacts" / "ai-usage-ledger.jsonl", [ai])
+        write_jsonl(self.root / "artifacts" / "human-review-ledger.jsonl", human)
+        report = evaluate_compliance(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertTrue(any(check["rule"] == "G0-HUMAN-SHAPE-001" for check in report["checks"]))
+        self.assertTrue(any(check["rule"] == "G0-HUMAN-INTEGRITY-001" for check in report["checks"]))
 
     def test_human_review_rejects_missing_or_unsafe_reviewed_artifacts(self):
         ai, human = valid_rows()

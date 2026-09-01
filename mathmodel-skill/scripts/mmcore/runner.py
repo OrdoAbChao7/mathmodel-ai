@@ -198,6 +198,8 @@ def run_project_command(project: Path, command: object, run_dir: Path, stage: st
             env=environment,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=DEFAULT_TIMEOUT_SECONDS,
             check=False,
         )

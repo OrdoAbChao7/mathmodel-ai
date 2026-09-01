@@ -54,7 +54,7 @@ class ArchitectureFreezeTests(unittest.TestCase):
         (self.root / "artifacts/decision-ledger.json").write_text('{}', encoding="utf-8")
         hashes = compute_upstream_hashes(self.root, self.cfg)
         write_json(self.root, "artifacts/freeze-manifest.json", {"schema_version": 1, "freeze_version": "1", "status": "CURRENT", "timestamp": "2026-09-01T00:00:00+00:00", "upstream_hashes": hashes, "h3_review_id": "h3-1"})
-        (self.root / "artifacts/human-review-ledger.jsonl").write_text(json.dumps({"id": "h3-1", "gate": "H3_RESULT_VERIFICATION", "reviewed_artifacts": ["artifacts/frozen-results.json", "artifacts/freeze-manifest.json"], "reviewer_name": "human", "reviewer_role": "team", "timestamp": "2026-09-01T00:00:00+00:00", "decision": "APPROVED", "evidence_notes": "主要数字真实；主要图正确；核心结论有边界；limitations 已理解。"}) + "\n", encoding="utf-8")
+        (self.root / "artifacts/human-review-ledger.jsonl").write_text(json.dumps({"id": "h3-1", "gate": "H3_RESULT_VERIFICATION", "reviewed_artifacts": ["artifacts/frozen-results.json", "artifacts/freeze-manifest.json"], "reviewer_name": "human", "reviewer_role": "team", "timestamp": "2026-09-01T00:00:00+00:00", "decision": "APPROVED", "evidence_notes": "主要数字真实；主要图正确；核心结论有边界；limitations 已理解。", "human_reasoning_summary": "The frozen results were checked against the recorded evidence.", "verified_points": ["数字", "图", "结论边界", "limitations"]}) + "\n", encoding="utf-8")
 
     def test_valid_architecture_passes(self):
         self.install_architecture()

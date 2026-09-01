@@ -284,7 +284,7 @@ def _command_runner(project: Path, command: Any, variant: str, timeout_seconds: 
             "MATHMODEL_BENCHMARK_REPEAT": str(repeat),
         })
         try:
-            completed = subprocess.run(command, cwd=case_project, env=environment, capture_output=True, text=True, timeout=timeout_seconds, check=False)
+            completed = subprocess.run(command, cwd=case_project, env=environment, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout_seconds, check=False)
         except (OSError, subprocess.TimeoutExpired) as exc:
             return {"status": "FAIL", "error": f"{variant} command failed: {exc}"}
         try:

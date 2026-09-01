@@ -66,6 +66,8 @@ def human_review(review_id: str, gate: str, artifacts: list[str], notes: str) ->
         "id": review_id, "gate": gate, "reviewed_artifacts": artifacts,
         "reviewer_name": "Fixture human reviewer", "reviewer_role": "team member",
         "timestamp": NOW, "decision": "APPROVED", "evidence_notes": notes,
+        "human_reasoning_summary": notes,
+        "verified_points": ["reviewed linked artifacts", "confirmed the recorded decision"],
     }
 
 

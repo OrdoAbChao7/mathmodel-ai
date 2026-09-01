@@ -53,6 +53,8 @@ def h1(reviewed_artifacts=None):
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "decision": "APPROVED",
         "evidence_notes": "Confirmed objectives, constraints, outputs, and dependencies.",
+        "human_reasoning_summary": "The locked map matches the team's reading of the statement.",
+        "verified_points": ["objectives", "constraints", "dependencies"],
     }
 
 

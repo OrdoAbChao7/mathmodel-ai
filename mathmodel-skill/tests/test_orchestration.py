@@ -96,6 +96,8 @@ class OrchestrationTests(unittest.TestCase):
             "id": gate.lower(), "gate": gate, "reviewed_artifacts": ["artifacts/evidence.json"],
             "reviewer_name": "contestant", "reviewer_role": "team", "timestamp": now,
             "decision": "APPROVED", "evidence_notes": "Reviewed by the team.",
+            "human_reasoning_summary": "The team reviewed the stage evidence before approval.",
+            "verified_points": ["linked evidence", "stage decision"],
         }) for gate in ("H1_PROBLEM_UNDERSTANDING", "H2_METHOD_SELECTION")) + "\n", encoding="utf-8")
         calls = []
         config = {"execution_mode": "competition_assisted", "orchestration": {"max_retries": 0}}

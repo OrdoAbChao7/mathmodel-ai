@@ -23,7 +23,7 @@ _AI_REQUIRED = (
 )
 _HUMAN_REQUIRED = (
     "id", "gate", "reviewed_artifacts", "reviewer_name", "reviewer_role", "timestamp",
-    "decision", "evidence_notes",
+    "decision", "evidence_notes", "human_reasoning_summary", "verified_points",
 )
 
 
@@ -158,6 +158,9 @@ def _human_checks(project: Path, rows: list[dict[str, Any]], errors: list[str], 
         valid = (
             gate in gates and artifacts_ok
             and _text(row["reviewer_name"]) and _text(row["reviewer_role"]) and _text(row["evidence_notes"])
+            and _text(row["human_reasoning_summary"])
+            and isinstance(row["verified_points"], list) and bool(row["verified_points"])
+            and all(_text(point) for point in row["verified_points"])
             and row["decision"] == "APPROVED" and _timestamp_ok(row["timestamp"], max_age_days)
             and not duplicate_or_invalid_id
         )

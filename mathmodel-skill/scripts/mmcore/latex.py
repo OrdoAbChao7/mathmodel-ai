@@ -169,6 +169,8 @@ def compile_latex(project: Path, main: Path, engine: str, jobname: str) -> dict[
                 cwd=root,
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 check=False,
                 shell=use_shell,
             )

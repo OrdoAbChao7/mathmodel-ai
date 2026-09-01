@@ -68,6 +68,8 @@ def h2():
         "reviewer_name": "Human Reviewer", "reviewer_role": "team member",
         "timestamp": datetime.now(timezone.utc).isoformat(), "decision": "APPROVED",
         "evidence_notes": "Compared the baseline, route diversity, risks, and complexity trade-offs.",
+        "human_reasoning_summary": "The selected route is justified against the baseline and probe results.",
+        "verified_points": ["baseline", "route diversity", "risk findings"],
     }
 
 

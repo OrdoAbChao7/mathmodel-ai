@@ -129,7 +129,7 @@ def _default_runner(project: Path, stage: str, timeout_seconds: int = 300, execu
     if isinstance(execution_mode, str) and execution_mode:
         command[4:4] = ["--mode", execution_mode.replace("_", "-")]
     try:
-        completed = subprocess.run(command, cwd=project, capture_output=True, text=True, timeout=max(1, timeout_seconds), check=False)
+        completed = subprocess.run(command, cwd=project, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=max(1, timeout_seconds), check=False)
     except subprocess.TimeoutExpired as exc:
         return {"status": "FAIL", "error": f"stage exceeded orchestration timeout: {exc}"}
     try:

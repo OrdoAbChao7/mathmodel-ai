@@ -4,12 +4,12 @@
 
 ## Mode boundary
 
-`research_autonomous` is the backward-compatible default when a project does not declare `execution_mode`. `competition_assisted` and `competition_max` are formal modes and require G0 plus H1, H2, H3, and H4. The mode is stored in `mathmodel.json`; contest rules are stored in `profiles/cumcm/*.yaml`, not hard-coded in gate logic.
+`research_autonomous` is the backward-compatible default when a project does not declare `execution_mode`. `competition_assisted` and `competition_max` are formal modes and require G0 plus H1, H2, H3, and H4. Each human record must include a reasoning summary and a non-empty list of verified points; a bare approval flag or note is insufficient. The mode is stored in `mathmodel.json`; contest rules are stored in `profiles/cumcm/*.yaml`, not hard-coded in gate logic.
 
 ## Artifacts
 
 - `artifacts/ai-usage-ledger.jsonl`: one JSON object per AI contribution, with model, purpose, stage, prompt hash, output artifacts, acceptance, human modification/verification, and review ID. Sensitive tokens are rejected.
-- `artifacts/human-review-ledger.jsonl`: one JSON object per human gate decision, with gate, artifacts reviewed, reviewer identity/role, timestamp, decision, and evidence notes.
+- `artifacts/human-review-ledger.jsonl`: one JSON object per human gate decision, with gate, artifacts reviewed, reviewer identity/role, timestamp, decision, evidence notes, reasoning summary, and verified points.
 - `profiles/cumcm/profile.yaml`, `official-rules.yaml`, `paper-rules.yaml`, `ai-rules.yaml`, `gate-overrides.yaml`: versioned rule sources with effective date, title, verification timestamp, and required gate configuration.
 
 ## Gate behavior
