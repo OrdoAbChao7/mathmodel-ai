@@ -1,4 +1,5 @@
 # Generated/runtime state
+.worktrees/
 __pycache__/
 *.py[cod]
 .mathmodel/
