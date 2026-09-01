@@ -78,7 +78,11 @@ def evaluate_model_architecture(project: Path, config: dict[str, Any]) -> dict[s
     if problem_error or architecture_error:
         checks.append(_check("G55-EVIDENCE-001", "FAIL", "problem map and model architecture are required", problem_map_error=problem_error, architecture_error=architecture_error))
         return {"status": "FAIL", "mode": mode, "checks": checks}
-    question_ids = {item.get("id") for item in _items(problem_map, "questions") if isinstance(item.get("id"), str) and item.get("id")}
+    raw_problem_questions = problem_map.get("questions")
+    if not isinstance(raw_problem_questions, list) or not raw_problem_questions or any(not isinstance(item, dict) for item in raw_problem_questions):
+        checks.append(_check("G55-SHAPE-002", "FAIL", "problem-map questions must be a non-empty array of objects"))
+        return {"status": "FAIL", "mode": mode, "checks": checks}
+    question_ids = {item.get("id") for item in raw_problem_questions if isinstance(item.get("id"), str) and item.get("id")}
     raw_questions = architecture.get("questions")
     architecture_questions = _items(architecture, "questions")
     if architecture.get("schema_version") != 1 or not architecture_questions or not isinstance(raw_questions, list) or any(not isinstance(item, dict) for item in raw_questions):
@@ -91,6 +95,9 @@ def evaluate_model_architecture(project: Path, config: dict[str, Any]) -> dict[s
     else:
         checks.append(_check("G55-COVERAGE-001", "PASS", "architecture covers every problem-map question"))
     model_registry, _ = _read_json(root / "artifacts" / "model-registry.json")
+    raw_models = model_registry.get("models") if isinstance(model_registry, dict) else None
+    if not isinstance(raw_models, list) or not raw_models or any(not isinstance(item, dict) for item in raw_models):
+        checks.append(_check("G55-MODEL-SHAPE-001", "FAIL", "model-registry models must be a non-empty array of objects"))
     model_ids = {item.get("id") for item in _items(model_registry, "models") if isinstance(item.get("id"), str) and item.get("id")}
     symbol_units: dict[str, str] = {}
     parameter_units: dict[str, str] = {}
@@ -242,6 +249,9 @@ def evaluate_results_freeze(project: Path, config: dict[str, Any]) -> dict[str, 
         return {"status": "FAIL", "mode": mode, "checks": checks, "stale_nodes": ["freeze"]}
     registry_items = _items(registry, "results")
     raw_frozen_results = frozen.get("results")
+    raw_registry_results = registry.get("results") if isinstance(registry, dict) else None
+    if not isinstance(raw_registry_results, list) or not raw_registry_results or any(not isinstance(item, dict) for item in raw_registry_results):
+        checks.append(_check("G6-REGISTRY-SHAPE-001", "FAIL", "result-registry results must be a non-empty array of objects"))
     frozen_items = _items(frozen, "results")
     frozen_by_id = {item.get("result_id"): item for item in frozen_items if isinstance(item.get("result_id"), str) and item.get("result_id")}
     if not isinstance(raw_frozen_results, list) or not raw_frozen_results or any(not isinstance(item, dict) for item in raw_frozen_results):
@@ -258,6 +268,13 @@ def evaluate_results_freeze(project: Path, config: dict[str, Any]) -> dict[str, 
         checks.append(_check("G6-FROZEN-RESULT-001", "FAIL", "frozen results do not exactly match the current result registry", mismatches=mismatches))
     else:
         checks.append(_check("G6-FROZEN-RESULT-001", "PASS", "frozen results match the current result registry"))
+    input_config = config.get("inputs") if isinstance(config.get("inputs"), dict) else None
+    malformed_inputs = input_config is None or any(
+        not isinstance(input_config.get(field), list) or any(not isinstance(item, str) for item in input_config.get(field, []))
+        for field in ("statements", "attachments")
+    )
+    if malformed_inputs:
+        checks.append(_check("G6-CONFIG-INPUT-001", "FAIL", "configured statements and attachments must be arrays of strings"))
     current_hashes = compute_upstream_hashes(root, config)
     expected_hashes = manifest.get("upstream_hashes") if isinstance(manifest.get("upstream_hashes"), dict) else {}
     changed = sorted(key for key, value in current_hashes.items() if expected_hashes.get(key) != value)

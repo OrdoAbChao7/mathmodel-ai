@@ -119,6 +119,22 @@ class ArchitectureFreezeTests(unittest.TestCase):
         report = evaluate_model_architecture(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
 
+    def test_non_object_problem_map_node_returns_structured_failure(self):
+        self.install_architecture()
+        problem_map = json.loads((self.root / "artifacts/problem-map.json").read_text(encoding="utf-8"))
+        problem_map["questions"].append("malformed")
+        write_json(self.root, "artifacts/problem-map.json", problem_map)
+        report = evaluate_model_architecture(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_non_object_model_registry_node_returns_structured_failure(self):
+        self.install_architecture()
+        models = json.loads((self.root / "artifacts/model-registry.json").read_text(encoding="utf-8"))
+        models["models"].append("malformed")
+        write_json(self.root, "artifacts/model-registry.json", models)
+        report = evaluate_model_architecture(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
     def test_empty_model_dependency_fails_g55(self):
         self.install_architecture()
         architecture = json.loads((self.root / "artifacts/model-architecture.json").read_text(encoding="utf-8"))
@@ -143,6 +159,14 @@ class ArchitectureFreezeTests(unittest.TestCase):
         report = evaluate_results_freeze(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
 
+    def test_non_object_result_registry_node_returns_structured_failure(self):
+        self.install_freeze()
+        registry = json.loads((self.root / "artifacts/result-registry.json").read_text(encoding="utf-8"))
+        registry["results"].append("malformed")
+        write_json(self.root, "artifacts/result-registry.json", registry)
+        report = evaluate_results_freeze(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
     def test_missing_manifest_review_id_cannot_match_missing_ledger_id(self):
         self.install_freeze()
         manifest = json.loads((self.root / "artifacts/freeze-manifest.json").read_text(encoding="utf-8"))
@@ -158,6 +182,12 @@ class ArchitectureFreezeTests(unittest.TestCase):
         self.install_freeze()
         (self.root / "data/raw.csv").unlink()
         report = evaluate_results_freeze(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_malformed_configured_input_returns_structured_failure(self):
+        self.install_freeze()
+        config = {**self.cfg, "inputs": {"attachments": ["data/raw.csv", []], "statements": []}}
+        report = evaluate_results_freeze(self.root, config)
         self.assertEqual(report["status"], "FAIL")
 
     def test_research_mode_is_not_applicable(self):
