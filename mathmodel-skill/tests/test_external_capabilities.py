@@ -37,7 +37,14 @@ class ExternalCapabilityTests(unittest.TestCase):
         path.mkdir()
         import yaml
         (path / "capability-registry.yaml").write_text(yaml.safe_dump({"schema_version": 1, "capabilities": self.config["capabilities"]}), encoding="utf-8")
-        (path / "external-sources.yaml").write_text(yaml.safe_dump({"schema_version": 1, "sources": self.config["sources"]}), encoding="utf-8")
+        (path / "external-sources.yaml").write_text(yaml.safe_dump({
+            "schema_version": 1,
+            "rule_version": "test-v1",
+            "effective_date": "2026-09-02",
+            "source_title": "Test source registry",
+            "verified_at": "2026-09-02",
+            "sources": self.config["sources"],
+        }), encoding="utf-8")
 
     def test_pinned_sources_and_local_authority_pass(self):
         self.write_config()
@@ -110,6 +117,17 @@ class ExternalCapabilityTests(unittest.TestCase):
         for field in ("rule_version", "effective_date", "source_title", "verified_at"):
             self.assertIsInstance(registry.get(field), str)
             self.assertTrue(registry[field].strip())
+
+    def test_source_registry_missing_audit_metadata_fails_closed(self):
+        self.write_config()
+        import yaml
+        path = self.root / "config" / "external-sources.yaml"
+        registry = yaml.safe_load(path.read_text(encoding="utf-8"))
+        registry.pop("verified_at")
+        path.write_text(yaml.safe_dump(registry), encoding="utf-8")
+        report = evaluate_capability_configuration(self.root)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertTrue(any(check["rule"] == "SOURCE-AUDIT-METADATA-001" for check in report["checks"]))
 
 
 if __name__ == "__main__":

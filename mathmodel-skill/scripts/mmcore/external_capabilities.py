@@ -14,6 +14,7 @@ _REPOSITORY = re.compile(r"^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/
 _MODES = {"ABSTRACT_INSPIRED", "EXTERNAL_ADAPTER", "REIMPLEMENTED"}
 _ADAPTER_AUTHORITY = {"xiaoma": "lazy_load", "ars": "findings_only", "automcm": "abstract_inspired", "zhnnky": "abstract_inspired"}
 _LOCAL_PROVIDERS = {"local", "local_review_system", "local_method_judge", "local_validation_engine", "local_g9"}
+_AUDIT_FIELDS = ("rule_version", "effective_date", "source_title", "verified_at")
 
 
 def _read_yaml(path: Path) -> tuple[dict[str, Any] | None, str | None]:
@@ -50,6 +51,13 @@ def evaluate_capability_configuration(project: Path) -> dict[str, Any]:
         return {"status": "FAIL", "checks": [_check("CAPABILITY-EVIDENCE-001", "FAIL", "capability and source registries are required", capability_error=cap_error, source_error=source_error)]}
     if capabilities.get("schema_version") != 1 or sources.get("schema_version") != 1:
         checks.append(_check("CAPABILITY-SCHEMA-001", "FAIL", "capability and source registries must use schema_version 1"))
+    missing_audit_fields = [field for field in _AUDIT_FIELDS if not _valid_text(sources.get(field))]
+    checks.append(_check(
+        "SOURCE-AUDIT-METADATA-001",
+        "FAIL" if missing_audit_fields else "PASS",
+        "source registry audit metadata is complete" if not missing_audit_fields else "source registry audit metadata is incomplete",
+        missing=missing_audit_fields,
+    ))
     raw_capabilities = capabilities.get("capabilities")
     raw_sources = sources.get("sources")
     if not isinstance(raw_capabilities, list) or not raw_capabilities or any(not isinstance(item, dict) for item in raw_capabilities):
