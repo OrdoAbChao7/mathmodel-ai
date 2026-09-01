@@ -120,6 +120,34 @@ class InterpretationTests(unittest.TestCase):
         report = evaluate_g1(self.root, self.cfg)
         self.assertEqual(report["status"], "PASS", report)
 
+    def test_tampered_conflict_metadata_cannot_mark_recomputed_conflict_resolved(self):
+        self.install_valid_evidence(second_objective="maximize service level")
+        write_json(self.root, "artifacts/interpretation-conflicts.json", {
+            "schema_version": 1,
+            "generated_by": "local_interpretation_engine",
+            "candidate_ids": ["I-A", "I-B"],
+            "conflicts": [{"id": "CONFLICT-OBJECTIVES-I-A-I-B", "dimension": "outputs", "severity": "MAJOR", "candidate_ids": ["I-A", "I-B"], "description": "tampered", "resolution_status": "RESOLVED"}],
+        })
+        report = evaluate_g1(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertTrue(any(check["rule"] == "G1-CONFLICT-INTEGRITY-001" for check in report["checks"]))
+
+    def test_required_artifact_metadata_is_fail_closed(self):
+        self.install_valid_evidence()
+        candidates = json.loads((self.root / "artifacts/interpretation-candidates.json").read_text(encoding="utf-8"))
+        candidates.pop("schema_version")
+        (self.root / "artifacts/interpretation-candidates.json").write_text(json.dumps(candidates), encoding="utf-8")
+        report = evaluate_g1(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertTrue(any(check["rule"] == "G1-ARTIFACT-METADATA-001" for check in report["checks"]))
+
+    def test_malformed_h1_record_returns_structured_failure(self):
+        self.install_valid_evidence()
+        write_jsonl(self.root, "artifacts/human-review-ledger.jsonl", [{**h1(), "reviewed_artifacts": None}])
+        report = evaluate_g1(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertTrue(any(check["rule"] == "G1-H1-LINK-001" for check in report["checks"]))
+
     def test_missing_h1_artifact_link_blocks_gate(self):
         self.install_valid_evidence(reviewed_artifacts=["artifacts/problem-map.json"])
         report = evaluate_g1(self.root, self.cfg)

@@ -129,7 +129,7 @@ def _candidate_checks(data: dict[str, Any], minimum: int) -> tuple[list[dict[str
     return checks, valid
 
 
-def _conflict_checks(project: Path, computed: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], str | None]:
+def _conflict_checks(project: Path, computed: list[dict[str, Any]], candidate_ids: list[str]) -> tuple[list[dict[str, Any]], str | None]:
     checks = []
     data, error = _read_json(project / "artifacts" / "interpretation-conflicts.json")
     if error:
@@ -137,13 +137,24 @@ def _conflict_checks(project: Path, computed: list[dict[str, Any]]) -> tuple[lis
     supplied = data.get("conflicts")
     if not isinstance(supplied, list):
         return [_check("G1-CONFLICT-EVIDENCE-001", "UNASSESSED", "conflict artifact must contain a conflicts array")], None
+    metadata_valid = (
+        data.get("schema_version") == 1
+        and isinstance(data.get("generated_by"), str) and bool(data["generated_by"].strip())
+        and isinstance(data.get("candidate_ids"), list)
+        and sorted(data["candidate_ids"]) == sorted(candidate_ids)
+    )
+    if not metadata_valid:
+        checks.append(_check("G1-ARTIFACT-METADATA-001", "FAIL", "conflict artifact metadata is missing or inconsistent"))
     by_id = {item.get("id"): item for item in supplied if isinstance(item, dict)}
+    if len(by_id) != len(supplied):
+        checks.append(_check("G1-CONFLICT-INTEGRITY-001", "FAIL", "conflict artifact contains duplicate or malformed IDs"))
     computed_ids = {item["id"] for item in computed}
     if set(by_id) != computed_ids:
         checks.append(_check("G1-CONFLICT-INTEGRITY-001", "FAIL", "conflict artifact does not match locally recomputed conflicts", expected=sorted(computed_ids), actual=sorted(by_id)))
     for conflict in computed:
         supplied_item = by_id.get(conflict["id"])
-        if not isinstance(supplied_item, dict) or supplied_item.get("dimension") != conflict["dimension"] or supplied_item.get("candidate_ids") != conflict["candidate_ids"]:
+        if not isinstance(supplied_item, dict) or supplied_item.get("dimension") != conflict["dimension"] or supplied_item.get("candidate_ids") != conflict["candidate_ids"] or supplied_item.get("severity") != conflict["severity"]:
+            checks.append(_check("G1-CONFLICT-INTEGRITY-001", "FAIL", "conflict evidence does not match locally recomputed metadata", conflict_id=conflict["id"]))
             continue
         if supplied_item.get("resolution_status") == "OPEN":
             checks.append(_check("G1-CONFLICT-OPEN-001", "BLOCKED_INTERPRETATION_CONFLICT", "major interpretation conflict remains open", conflict_id=conflict["id"]))
@@ -159,7 +170,8 @@ def _conflict_checks(project: Path, computed: list[dict[str, Any]]) -> tuple[lis
 def _h1_check(project: Path) -> dict[str, Any]:
     rows, errors = _read_jsonl(project / "artifacts" / "human-review-ledger.jsonl")
     for row in rows:
-        reviewed = set(item.replace("\\", "/") for item in row.get("reviewed_artifacts", []) if isinstance(item, str))
+        reviewed_items = row.get("reviewed_artifacts")
+        reviewed = set(item.replace("\\", "/") for item in reviewed_items if isinstance(item, str)) if isinstance(reviewed_items, list) else set()
         if row.get("gate") == "H1_PROBLEM_UNDERSTANDING" and row.get("decision") == "APPROVED" and _H1_REQUIRED_ARTIFACTS <= reviewed:
             return _check("G1-H1-LINK-001", "PASS", "H1 signoff explicitly covers interpretation evidence", review_id=row.get("id"))
     return _check("G1-H1-LINK-001", "FAIL", "H1 signoff does not cover all interpretation evidence", ledger_errors=errors)
@@ -186,11 +198,13 @@ def evaluate_g1(project: Path, config: dict[str, Any]) -> dict[str, Any]:
         candidates = {}
     else:
         candidates = candidates_data or {}
+        if candidates.get("schema_version") != 1 or not isinstance(candidates.get("problem_id"), str) or not candidates["problem_id"].strip():
+            checks.append(_check("G1-ARTIFACT-METADATA-001", "FAIL", "interpretation candidate metadata is missing or invalid"))
     candidate_checks, valid_candidates = _candidate_checks(candidates, int(profile.get("minimum_independent_interpretations", 2)))
     checks.extend(candidate_checks)
     dimensions = tuple(profile.get("major_conflict_dimensions", _CONFLICT_FIELDS))
     computed = _computed_conflicts(valid_candidates, dimensions)
-    conflict_checks, conflict_status = _conflict_checks(project, computed)
+    conflict_checks, conflict_status = _conflict_checks(project, computed, [item["interpreter_id"] for item in valid_candidates])
     checks.extend(conflict_checks)
     problem_map, map_error = _read_json(project / "artifacts" / "problem-map.json")
     questions = problem_map.get("questions") if isinstance(problem_map, dict) else None
