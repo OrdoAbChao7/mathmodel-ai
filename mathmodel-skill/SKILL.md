@@ -24,6 +24,8 @@ python mathmodel-skill/scripts/mathmodel.py build PROJECT --json
 python mathmodel-skill/scripts/mathmodel.py audit PROJECT --json
 ```
 
+For a focused, read-only view of one stage, use `frame`, `screen`, `select`, `validate`, `freeze`, `review`, `signoff`, or `compliance` with the same `PROJECT --json` form. These commands reuse the audit evaluators and cannot independently release a submission.
+
 Do not replace these checks with a prose assertion or a visual impression. Read the current `build/quality-report.json`, `build/quality-report.md`, page metrics, and `.mathmodel/runs/*/manifest.json` before claiming a result is reproducible, validated, or releasable.
 
 ## Maintain the evidence chain

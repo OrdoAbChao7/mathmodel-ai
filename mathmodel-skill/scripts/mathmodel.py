@@ -291,6 +291,40 @@ def _authority_report(project: Path) -> dict:
     }
 
 
+def _stage_report(project: Path, stage: str) -> dict:
+    """Expose one read-only phase while reusing the same gate evaluators as audit."""
+    root = Path(project).resolve()
+    cfg = load_config(root)
+    if stage == "frame":
+        inventory = inventory_project(root, cfg)
+        report = {"inventory": inventory, "g1": evaluate_g1(root, cfg)}
+    elif stage == "screen":
+        contract = validate_artifacts(root, REQUIRED_ARTIFACTS)
+        quality = score_quality(contract["checks"], cfg.get("quality", {}).get("manual_scores"))
+        page_metrics = _measure_current_pdf(root, cfg)
+        report = {"contract": contract, "quality": quality, "page_metrics": page_metrics}
+    elif stage == "select":
+        report = {"model_tournament": evaluate_model_tournament(root, cfg)}
+    elif stage == "validate":
+        report = {"contract": validate_artifacts(root, REQUIRED_ARTIFACTS), "semantic_validation": evaluate_semantic_validation(root, cfg)}
+    elif stage == "freeze":
+        report = {"model_architecture": evaluate_model_architecture(root, cfg), "results_freeze": evaluate_results_freeze(root, cfg)}
+    elif stage == "review":
+        report = {"writer_package": evaluate_writer_package(root, cfg), "review_registry": evaluate_review_registry(root, cfg), "max_rigor": evaluate_max_rigor(root, cfg)}
+    elif stage in {"compliance", "signoff"}:
+        report = {"compliance": evaluate_compliance(root, cfg)}
+    else:
+        raise ValueError(f"unsupported stage: {stage}")
+    statuses = []
+    for value in report.values():
+        if isinstance(value, dict) and isinstance(value.get("status"), str):
+            statuses.append(value["status"])
+        elif isinstance(value, dict) and isinstance(value.get("release_status"), str):
+            statuses.append(value["release_status"])
+    status = "FAIL" if any(item == "FAIL" for item in statuses) else ("PASS" if statuses and all(item in {"PASS", "NOT_APPLICABLE", "SUCCESS"} for item in statuses) else "PENDING")
+    return {"stage": stage, "status": status, "reports": report}
+
+
 def _measure_current_pdf(project: Path, cfg: dict) -> dict:
     jobname = cfg["paper"]["jobname"]
     candidates = (
@@ -467,6 +501,10 @@ def main(argv: list[str] | None = None) -> int:
     authority_parser = subparsers.add_parser("authority")
     authority_parser.add_argument("project")
     authority_parser.add_argument("--json", action="store_true")
+    for stage in ("frame", "screen", "select", "validate", "freeze", "review", "signoff", "compliance"):
+        stage_parser = subparsers.add_parser(stage)
+        stage_parser.add_argument("project")
+        stage_parser.add_argument("--json", action="store_true")
     try:
         args = parser.parse_args(argv)
     except SystemExit as exc:
@@ -760,6 +798,16 @@ def main(argv: list[str] | None = None) -> int:
         registry_values = report["registries"].values()
         registries_ok = all(value in {"PASS", "UNASSESSED"} for value in registry_values)
         return 0 if report["constitution"] == "PASS" and report["schemas"] == "PASS" and registries_ok else 1
+    if args.command in {"frame", "screen", "select", "validate", "freeze", "review", "signoff", "compliance"}:
+        try:
+            result = _stage_report(Path(args.project), args.command)
+        except (ConfigError, OSError, TypeError, ValueError) as exc:
+            result = {"stage": args.command, "status": "FAIL", "errors": [str(exc)]}
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False))
+        else:
+            print(f"{args.command}: {result['status']} ({args.project})")
+        return 0 if result["status"] in {"PASS", "NOT_APPLICABLE"} else 1
     if args.command is None:
         parser.print_help()
         return 0
