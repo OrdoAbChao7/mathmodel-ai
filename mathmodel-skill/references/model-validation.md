@@ -9,5 +9,7 @@ Run common checks first: verify units and signs, test boundary and hand-calculat
 | Evaluation | Indicator direction, normalization, weight source, ranking stability, and weight perturbation |
 | Simulation | Seed, repetitions, uncertainty interval, convergence evidence, and scenario comparison |
 | Mechanism | Dimensional consistency, boundary behavior, parameter identifiability, and calibration or external comparison |
+| Classification | Stratified split, leakage check, baseline, threshold policy, class-wise diagnostics, and metric recomputation |
+| Statistics | Sampling assumptions, uncertainty interval, baseline, missing-data policy, specification sensitivity, and metric recomputation |
 
 Write each check to `validation.json` with its input IDs, metric, threshold, observed result, and interpretation. Reject a conclusion when a required check fails; report the failure and restrict the claim instead.

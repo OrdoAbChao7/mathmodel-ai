@@ -74,6 +74,8 @@ Read [paper-architecture.md](references/paper-architecture.md) for the section c
 | Forecast time-ordered outcomes | [forecasting.md](references/forecasting.md) |
 | Allocate resources or solve constrained objectives | [optimization.md](references/optimization.md) |
 | Rank alternatives or combine multiple indicators | [evaluation.md](references/evaluation.md) |
+| Classification or class-imbalance modeling | [classification.md](references/classification.md) |
+| Statistical inference or uncertainty analysis | [statistics.md](references/statistics.md) |
 | Select a model family or document heuristic settings | [modeling-methods.md](references/modeling-methods.md) |
 | Draft the abstract or per-question paper chain | [modeling-paper.md](references/modeling-paper.md) |
 | Select CUMCM LaTeX packages, labels, or citation commands | [latex-template.md](references/latex-template.md) |
