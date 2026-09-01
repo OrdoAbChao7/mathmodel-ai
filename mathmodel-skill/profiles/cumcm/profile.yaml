@@ -35,3 +35,36 @@ model_tournament:
     - sensitivity_risk
     - validation_feasibility
     - baseline_plausibility
+validation_requirements:
+  forecasting:
+    - chronological_split
+    - leakage_check
+    - baseline
+    - metric_recomputation
+  optimization:
+    - solver_status
+    - feasibility
+    - constraint_violation
+    - objective_recomputation
+    - baseline_policy
+  evaluation:
+    - indicator_direction
+    - normalization
+    - weight_provenance
+    - ranking_stability
+  simulation:
+    - seed
+    - replications
+    - convergence
+    - uncertainty_interval
+  mechanism:
+    - units
+    - boundary_behavior
+    - parameter_plausibility
+    - calibration
+  hybrid:
+    - baseline
+    - leakage_check
+    - feasibility
+    - objective_recomputation
+    - validation_feasibility

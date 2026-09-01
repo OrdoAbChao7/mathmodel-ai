@@ -117,6 +117,11 @@ def package(project: Path, report: dict[str, Any] | str | Path | None = None) ->
         g3 = tournament.get("g3") if isinstance(tournament, dict) else None
         if not isinstance(g2, dict) or not isinstance(g3, dict) or g2.get("status") != "PASS" or g3.get("status") != "PASS":
             checks.append(_record("PACKAGE-MODEL-TOURNAMENT-001", "FAIL", "formal competition package requires PASS G2 and G3 model-search evidence"))
+        semantic = loaded.get("semantic_validation")
+        g4 = semantic.get("g4") if isinstance(semantic, dict) else None
+        g5 = semantic.get("g5") if isinstance(semantic, dict) else None
+        if not isinstance(g4, dict) or not isinstance(g5, dict) or g4.get("status") != "PASS" or g5.get("status") != "PASS":
+            checks.append(_record("PACKAGE-VALIDATION-001", "FAIL", "formal competition package requires PASS G4 and G5 semantic validation evidence"))
     quality = loaded.get("quality") if isinstance(loaded.get("quality"), dict) else {}
     manual = quality.get("manual_review")
     if manual != "COMPLETE":
