@@ -98,6 +98,15 @@ class SemanticValidationTests(unittest.TestCase):
         write_json(self.root, "artifacts/falsification.json", {"schema_version": 1, "generated_by": "local", "attacks": [], "status": "PASS"})
         report = evaluate_semantic_validation(self.root, self.cfg)
         self.assertEqual(report["g5"]["status"], "FAIL")
+        self.assertTrue(any(check["rule"] == "G5-FALSIFICATION-COVERAGE-001" for check in report["g5"]["checks"]))
+
+    def test_attack_for_unknown_validation_id_fails_g5(self):
+        self.install_valid()
+        falsification = json.loads((self.root / "artifacts/falsification.json").read_text(encoding="utf-8"))
+        falsification["attacks"][0]["validation_id"] = "V-UNKNOWN"
+        write_json(self.root, "artifacts/falsification.json", falsification)
+        report = evaluate_semantic_validation(self.root, self.cfg)
+        self.assertEqual(report["g5"]["status"], "FAIL")
 
     def test_malformed_validation_types_return_structured_failure(self):
         self.install_valid()
@@ -106,6 +115,28 @@ class SemanticValidationTests(unittest.TestCase):
         write_json(self.root, "artifacts/validation.json", validation)
         report = evaluate_semantic_validation(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
+
+    def test_malformed_operator_type_returns_structured_failure(self):
+        self.install_valid()
+        validation = json.loads((self.root / "artifacts/validation.json").read_text(encoding="utf-8"))
+        validation["validations"][0]["operator"] = []
+        write_json(self.root, "artifacts/validation.json", validation)
+        report = evaluate_semantic_validation(self.root, self.cfg)
+        self.assertEqual(report["g4"]["status"], "FAIL")
+
+    def test_non_finite_observed_value_fails_machine_validation(self):
+        self.install_valid()
+        validation = json.loads((self.root / "artifacts/validation.json").read_text(encoding="utf-8"))
+        validation["validations"][0]["observed"] = float("nan")
+        validation["validations"][0]["operator"] = "!="
+        write_json(self.root, "artifacts/validation.json", validation)
+        report = evaluate_semantic_validation(self.root, self.cfg)
+        self.assertEqual(report["g4"]["status"], "FAIL")
+
+    def test_hybrid_problem_type_requires_profiled_semantic_checks(self):
+        self.install_valid()
+        report = evaluate_semantic_validation(self.root, {**self.cfg, "problem_type": "hybrid"})
+        self.assertEqual(report["g4"]["status"], "FAIL")
 
     def test_research_mode_is_not_applicable(self):
         report = evaluate_semantic_validation(self.root, {"problem_type": "forecasting", "execution_mode": "research_autonomous"})

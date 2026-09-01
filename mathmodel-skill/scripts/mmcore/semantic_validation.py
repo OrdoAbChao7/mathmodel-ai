@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import operator
 from pathlib import Path
 from typing import Any, Callable
@@ -65,7 +66,7 @@ def _safe_path(project: Path, value: Any) -> tuple[Path | None, str | None]:
 
 
 def _number(value: Any) -> bool:
-    return not isinstance(value, bool) and isinstance(value, (int, float))
+    return not isinstance(value, bool) and isinstance(value, (int, float)) and math.isfinite(float(value))
 
 
 def _validation_checks(project: Path, data: dict[str, Any], required: tuple[str, ...]) -> tuple[list[dict[str, Any]], list[str]]:
@@ -85,7 +86,7 @@ def _validation_checks(project: Path, data: dict[str, Any], required: tuple[str,
             checks.append(_check("G4-VALIDATION-SHAPE-001", "FAIL", "validation record is malformed or duplicated", id=identifier, missing=missing))
             continue
         ids.add(identifier)
-        metric_ok = _text(record.get("metric")) and _text(record.get("question_id")) and record.get("operator") in _OPERATORS and _number(record.get("threshold")) and _number(record.get("observed"))
+        metric_ok = _text(record.get("metric")) and _text(record.get("question_id")) and isinstance(record.get("operator"), str) and record.get("operator") in _OPERATORS and _number(record.get("threshold")) and _number(record.get("observed"))
         evidence_path, path_error = _safe_path(project, record.get("evidence_source"))
         path_ok = path_error is None and evidence_path is not None and evidence_path.is_file()
         if not metric_ok:
@@ -140,9 +141,12 @@ def _falsification_checks(project: Path, data: dict[str, Any], validation_ids: l
         else:
             checks.append(_check("G5-FALSIFICATION-001", "PASS", "result survived falsification attack", id=identifier, validation_id=attack["validation_id"]))
     missing_coverage = sorted(set(validation_ids) - set(by_validation))
+    unknown_coverage = sorted(set(by_validation) - set(validation_ids))
     if missing_coverage:
         checks.append(_check("G5-FALSIFICATION-COVERAGE-001", "FAIL", "every validation needs a falsification attack", missing=missing_coverage))
-    elif validation_ids:
+    if unknown_coverage:
+        checks.append(_check("G5-FALSIFICATION-COVERAGE-001", "FAIL", "falsification attacks reference unknown validations", unknown=unknown_coverage))
+    if not missing_coverage and not unknown_coverage and validation_ids:
         checks.append(_check("G5-FALSIFICATION-COVERAGE-001", "PASS", "all validations have falsification coverage", validations=validation_ids))
     return checks
 

@@ -62,3 +62,9 @@ validation_requirements:
     - boundary_behavior
     - parameter_plausibility
     - calibration
+  hybrid:
+    - baseline
+    - leakage_check
+    - feasibility
+    - objective_recomputation
+    - validation_feasibility
