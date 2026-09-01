@@ -122,6 +122,12 @@ def package(project: Path, report: dict[str, Any] | str | Path | None = None) ->
         g5 = semantic.get("g5") if isinstance(semantic, dict) else None
         if not isinstance(g4, dict) or not isinstance(g5, dict) or g4.get("status") != "PASS" or g5.get("status") != "PASS":
             checks.append(_record("PACKAGE-VALIDATION-001", "FAIL", "formal competition package requires PASS G4 and G5 semantic validation evidence"))
+        architecture = loaded.get("model_architecture")
+        if not isinstance(architecture, dict) or architecture.get("status") != "PASS":
+            checks.append(_record("PACKAGE-ARCHITECTURE-001", "FAIL", "formal competition package requires PASS G5.5 cross-question coherence evidence"))
+        freeze = loaded.get("results_freeze")
+        if not isinstance(freeze, dict) or freeze.get("status") != "PASS":
+            checks.append(_record("PACKAGE-FREEZE-001", "FAIL", "formal competition package requires PASS G6 frozen-results evidence"))
     quality = loaded.get("quality") if isinstance(loaded.get("quality"), dict) else {}
     manual = quality.get("manual_review")
     if manual != "COMPLETE":

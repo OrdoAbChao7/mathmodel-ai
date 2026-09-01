@@ -14,6 +14,7 @@ from mmcore.compliance import evaluate_compliance
 from mmcore.interpretation import evaluate_g1
 from mmcore.model_tournament import evaluate_model_tournament
 from mmcore.semantic_validation import evaluate_semantic_validation
+from mmcore.architecture_freeze import evaluate_model_architecture, evaluate_results_freeze
 from mmcore.contracts import REQUIRED_ARTIFACTS, validate_artifacts
 from mmcore.manifest import inventory_project, new_run, update_stage, sha256_file
 from mmcore.latex import compile_latex, find_latex_placeholders
@@ -35,6 +36,8 @@ def _write_quality_reports(
     g1: dict | None = None,
     model_tournament: dict | None = None,
     semantic_validation: dict | None = None,
+    model_architecture: dict | None = None,
+    results_freeze: dict | None = None,
 ) -> tuple[Path, Path, dict]:
     build = project / "build"
     build.mkdir(parents=True, exist_ok=True)
@@ -50,6 +53,8 @@ def _write_quality_reports(
         "g1": g1 or {"status": "NOT_APPLICABLE", "gate": "G1_PROBLEM_UNDERSTANDING_LOCKED", "checks": []},
         "model_tournament": model_tournament or {"status": "NOT_APPLICABLE", "g2": {"status": "NOT_APPLICABLE", "checks": []}, "g3": {"status": "NOT_APPLICABLE", "checks": []}},
         "semantic_validation": semantic_validation or {"status": "NOT_APPLICABLE", "g4": {"status": "NOT_APPLICABLE", "checks": []}, "g5": {"status": "NOT_APPLICABLE", "checks": []}},
+        "model_architecture": model_architecture or {"status": "NOT_APPLICABLE", "checks": []},
+        "results_freeze": results_freeze or {"status": "NOT_APPLICABLE", "checks": [], "stale_nodes": []},
     }
     # Persist the evidence objects consumed by the strict release packager.
     # They are generated from the same contract and inventory used for this
@@ -129,6 +134,8 @@ def _write_quality_reports(
         f"- G1 interpretation: {report['g1']['status']}",
         f"- G2/G3 model tournament: {report['model_tournament']['status']}",
         f"- G4/G5 semantic validation: {report['semantic_validation']['status']}",
+        f"- G5.5 cross-question coherence: {report['model_architecture']['status']}",
+        f"- G6 frozen results: {report['results_freeze']['status']}",
         "",
         "## Dimensions",
         "",
@@ -192,6 +199,17 @@ def _semantic_gate(semantic_validation: dict, key: str, rule: str, title: str) -
         "status": "PASS" if status in {"PASS", "NOT_APPLICABLE"} else "FAIL",
         "message": title if status == "PASS" else (f"{title} is not applicable for research mode" if status == "NOT_APPLICABLE" else f"{title} is not satisfied"),
         "evidence": {"status": status, "checks": detail.get("checks", [])},
+    }
+
+
+def _phase5_gate(report: dict, rule: str, title: str) -> dict:
+    status = report.get("status") if isinstance(report, dict) else None
+    return {
+        "rule": rule,
+        "severity": "FAIL",
+        "status": "PASS" if status in {"PASS", "NOT_APPLICABLE"} else "FAIL",
+        "message": title if status == "PASS" else (f"{title} is not applicable for research mode" if status == "NOT_APPLICABLE" else f"{title} is not satisfied"),
+        "evidence": {"status": status, "checks": report.get("checks", []) if isinstance(report, dict) else [], "stale_nodes": report.get("stale_nodes", []) if isinstance(report, dict) else []},
     }
 
 
@@ -432,9 +450,13 @@ def main(argv: list[str] | None = None) -> int:
         semantic_validation = evaluate_semantic_validation(project, cfg)
         page_gates.append(_semantic_gate(semantic_validation, "g4", "G4-SEMANTIC-VALIDATION-001", "semantic validation is complete"))
         page_gates.append(_semantic_gate(semantic_validation, "g5", "G5-FALSIFICATION-001", "falsification is passed"))
+        model_architecture = evaluate_model_architecture(project, cfg)
+        results_freeze = evaluate_results_freeze(project, cfg)
+        page_gates.append(_phase5_gate(model_architecture, "G5.5-CROSS-QUESTION-COHERENCE-001", "cross-question model architecture is coherent"))
+        page_gates.append(_phase5_gate(results_freeze, "G6-HUMAN-VERIFIED-FREEZE-001", "results are human-verified and frozen"))
         _, source_gates = _source_gates(project, cfg)
         page_gates.extend(source_gates)
-        report_path, summary_path, _ = _write_quality_reports(project, contract, quality, page_metrics, page_gates, compliance=compliance, g1=g1, model_tournament=model_tournament, semantic_validation=semantic_validation)
+        report_path, summary_path, _ = _write_quality_reports(project, contract, quality, page_metrics, page_gates, compliance=compliance, g1=g1, model_tournament=model_tournament, semantic_validation=semantic_validation, model_architecture=model_architecture, results_freeze=results_freeze)
         release_status = _release_status(contract, page_gates)
         result = {
             "report": str(report_path),
@@ -448,6 +470,8 @@ def main(argv: list[str] | None = None) -> int:
             "g1": g1,
             "model_tournament": model_tournament,
             "semantic_validation": semantic_validation,
+            "model_architecture": model_architecture,
+            "results_freeze": results_freeze,
         }
         if args.json:
             print(json.dumps(result, ensure_ascii=False))
@@ -549,9 +573,13 @@ def main(argv: list[str] | None = None) -> int:
         semantic_validation = evaluate_semantic_validation(project, cfg)
         page_gates.append(_semantic_gate(semantic_validation, "g4", "G4-SEMANTIC-VALIDATION-001", "semantic validation is complete"))
         page_gates.append(_semantic_gate(semantic_validation, "g5", "G5-FALSIFICATION-001", "falsification is passed"))
+        model_architecture = evaluate_model_architecture(project, cfg)
+        results_freeze = evaluate_results_freeze(project, cfg)
+        page_gates.append(_phase5_gate(model_architecture, "G5.5-CROSS-QUESTION-COHERENCE-001", "cross-question model architecture is coherent"))
+        page_gates.append(_phase5_gate(results_freeze, "G6-HUMAN-VERIFIED-FREEZE-001", "results are human-verified and frozen"))
         page_gates.extend(source_gates)
         report_path, summary_path, _ = _write_quality_reports(
-            project, contract, quality, page_metrics, page_gates, compile_result, compliance, g1, model_tournament, semantic_validation
+            project, contract, quality, page_metrics, page_gates, compile_result, compliance, g1, model_tournament, semantic_validation, model_architecture, results_freeze
         )
         release_status = _release_status(contract, page_gates, compile_result)
         if solver["status"] == "FAILED" or analysis["status"] == "FAILED":
@@ -577,6 +605,8 @@ def main(argv: list[str] | None = None) -> int:
             "g1": g1,
             "model_tournament": model_tournament,
             "semantic_validation": semantic_validation,
+            "model_architecture": model_architecture,
+            "results_freeze": results_freeze,
         }
         if args.json:
             print(json.dumps(result, ensure_ascii=False))
