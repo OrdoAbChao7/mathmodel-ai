@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent
-REPO = ROOT.parents[2]
+REPO = Path(os.environ.get("MATHMODEL_REPO_ROOT", str(ROOT.parents[2]))).resolve()
 sys.path.insert(0, str(REPO / "mathmodel-skill" / "scripts"))
 from mmcore.architecture_freeze import compute_upstream_hashes  # noqa: E402
 

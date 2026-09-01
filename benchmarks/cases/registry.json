@@ -8,6 +8,7 @@
       "project": "benchmarks/cases/formal-max-fixture",
       "source": "repository fixture",
       "enabled": true,
+      "benchmark_command": ["python", "solve.py"],
       "execution_mode": "competition_max"
     },
     {
@@ -16,7 +17,8 @@
       "problem_type": "forecasting",
       "project": "mathmodel-skill/tests/fixtures/forecasting",
       "source": "repository fixture",
-      "enabled": true
+      "enabled": true,
+      "benchmark_command": ["python", "analysis/run.py"]
     },
     {
       "case_id": "fixture-optimization",
@@ -24,7 +26,8 @@
       "problem_type": "optimization",
       "project": "mathmodel-skill/tests/fixtures/optimization",
       "source": "repository fixture",
-      "enabled": true
+      "enabled": true,
+      "benchmark_command": ["python", "analysis/run.py"]
     },
     {
       "case_id": "fixture-evaluation",
@@ -32,7 +35,8 @@
       "problem_type": "evaluation",
       "project": "mathmodel-skill/tests/fixtures/evaluation",
       "source": "repository fixture",
-      "enabled": true
+      "enabled": true,
+      "benchmark_command": ["python", "analysis/run.py"]
     },
     {
       "case_id": "training-001",
@@ -40,7 +44,8 @@
       "problem_type": "optimization",
       "project": "traning1",
       "source": "repository training case",
-      "enabled": true
+      "enabled": false,
+      "availability": "full_build_case_not_in_smoke_benchmark"
     },
     {
       "case_id": "cumcm-2025-a",
