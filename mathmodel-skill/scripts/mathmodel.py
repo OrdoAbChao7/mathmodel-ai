@@ -490,6 +490,8 @@ def main(argv: list[str] | None = None) -> int:
     run_parser = subparsers.add_parser("run")
     run_parser.add_argument("project")
     run_parser.add_argument("--resume", action="store_true")
+    run_parser.add_argument("--profile", choices=("cumcm",), default=None)
+    run_parser.add_argument("--mode", choices=("research-autonomous", "competition-assisted", "competition-max"), default=None)
     run_parser.add_argument("--json", action="store_true")
     benchmark_parser = subparsers.add_parser("benchmark")
     benchmark_parser.add_argument("project")
@@ -765,6 +767,11 @@ def main(argv: list[str] | None = None) -> int:
         project = Path(args.project).resolve()
         try:
             cfg = load_config(project)
+            if args.profile is not None and args.profile != "cumcm":
+                raise ConfigError(f"unsupported profile: {args.profile}")
+            if args.mode is not None:
+                cfg = dict(cfg)
+                cfg["execution_mode"] = args.mode.replace("-", "_")
         except ConfigError as exc:
             result = {"status": "FAIL", "errors": [{"rule": "RUN-CONFIG-001", "message": str(exc)}]}
             if args.json:

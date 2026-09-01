@@ -189,6 +189,20 @@ class ConfigTests(unittest.TestCase):
         report = json.loads(output.getvalue())
         self.assertEqual(report["registries"]["capability_registry"], "FAIL")
 
+    def test_run_cli_accepts_cumcm_profile_and_mode_without_rewriting_config(self):
+        config = valid_config()
+        write_json(self.root / "mathmodel.json", config)
+        output = StringIO()
+        with redirect_stdout(output):
+            exit_code = main([
+                "run", str(self.root), "--profile", "cumcm", "--mode", "competition-max", "--json",
+            ])
+        self.assertEqual(exit_code, 1)
+        report = json.loads(output.getvalue())
+        self.assertEqual(report["status"], "BLOCKED_HUMAN_INPUT")
+        self.assertEqual(report["blocked_stage"], "build")
+        self.assertEqual(json.loads((self.root / "mathmodel.json").read_text(encoding="utf-8")), config)
+
 
 if __name__ == "__main__":
     unittest.main()
