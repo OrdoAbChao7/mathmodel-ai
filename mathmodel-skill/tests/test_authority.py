@@ -36,6 +36,11 @@ class AuthorityTests(unittest.TestCase):
     def test_registry_shape_is_checked_after_schema_version(self):
         self.assertEqual(validate_registry({"schema_version": 1, "capabilities": "bad"}, "capability"), "FAIL")
         self.assertEqual(validate_registry({"schema_version": 1, "capabilities": [{"id": "x", "name": "solver", "status": "EXPERIMENTAL"}]}, "capability"), "PASS")
+        self.assertEqual(validate_registry({"schema_version": 1, "capabilities": [{"id": "x", "name": "solver", "status": "BOGUS"}]}, "capability"), "FAIL")
+
+    def test_conflict_authority_fields_must_be_nonempty_strings(self):
+        conflict = {"status": "RESOLVED", "resolution": "A", "policy_id": ["P1"], "human_decision": "approved"}
+        self.assertEqual(resolve_conflict(conflict)["status"], "UNASSESSED")
 
     def test_external_release_pass_is_rejected_as_authority(self):
         self.assertEqual(accept_external_status("RELEASE=PASS"), "REJECTED")
