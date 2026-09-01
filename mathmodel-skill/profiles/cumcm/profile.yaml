@@ -35,6 +35,16 @@ model_tournament:
     - sensitivity_risk
     - validation_feasibility
     - baseline_plausibility
+competition_max:
+  evidence_artifact: artifacts/competition-max-review.json
+  minimum_model_scouts: 2
+  minimum_candidate_routes_reviewed: 4
+  minimum_red_team_rounds: 2
+  required_robustness_attacks:
+    - alternative_split
+    - extreme_scenario
+    - bootstrap
+  required_external_review_provider: ars
 validation_requirements:
   forecasting:
     - chronological_split
