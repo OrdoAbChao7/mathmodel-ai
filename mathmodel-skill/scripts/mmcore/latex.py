@@ -66,6 +66,13 @@ def _scan_log(path: Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         (errors if points > 2 else warnings).append(record)
     if "fatal error" in text.lower() or "emergency stop" in text.lower() or "undefined control sequence" in text.lower():
         errors.append(_record("LATEX-LOG-FATAL-001", "LaTeX log contains a fatal error", path=path))
+    if "major issue: so far, you have not checked for miktex updates" in text.lower():
+        errors.append(_record(
+            "LATEX-ENV-001",
+            "MiKTeX setup is incomplete; check updates and initialize the local package database",
+            path=path,
+            evidence={"remedy": "Run MiKTeX Console update check, then refresh the user file database."},
+        ))
     return warnings, errors
 
 

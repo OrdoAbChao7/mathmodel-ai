@@ -15,7 +15,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 from mathmodel import main
-from mmcore.latex import compile_latex, find_latex_placeholders
+from mmcore.latex import _scan_log, compile_latex, find_latex_placeholders
 from mmcore.pdfmetrics import evaluate_page_gates, measure_pdf, parse_aux_pages
 
 
@@ -88,6 +88,12 @@ class LatexMetricsTests(unittest.TestCase):
 
     def tearDown(self):
         self._tempdir.cleanup()
+
+    def test_miktex_setup_issue_is_reported_as_environment_diagnostic(self):
+        log = self.root / "miktex.log"
+        log.write_text("xelatex: major issue: So far, you have not checked for MiKTeX updates.", encoding="utf-8")
+        _, errors = _scan_log(log)
+        self.assertTrue(any(item["rule"] == "LATEX-ENV-001" for item in errors))
 
     def write_aux(self, *, body_start=1, body_end=28, references_start=29, references_end=30, appendix_start=31, appendix_end=35):
         aux = self.root / "build" / "latex" / "paper.aux"
