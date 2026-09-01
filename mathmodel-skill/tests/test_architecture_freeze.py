@@ -111,6 +111,55 @@ class ArchitectureFreezeTests(unittest.TestCase):
         report = evaluate_model_architecture(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
 
+    def test_non_object_architecture_node_returns_structured_failure(self):
+        self.install_architecture()
+        architecture = json.loads((self.root / "artifacts/model-architecture.json").read_text(encoding="utf-8"))
+        architecture["questions"].append("malformed")
+        write_json(self.root, "artifacts/model-architecture.json", architecture)
+        report = evaluate_model_architecture(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_empty_model_dependency_fails_g55(self):
+        self.install_architecture()
+        architecture = json.loads((self.root / "artifacts/model-architecture.json").read_text(encoding="utf-8"))
+        architecture["questions"][0]["model_ids"] = []
+        write_json(self.root, "artifacts/model-architecture.json", architecture)
+        report = evaluate_model_architecture(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_malformed_link_types_return_structured_failure(self):
+        self.install_architecture()
+        architecture = json.loads((self.root / "artifacts/model-architecture.json").read_text(encoding="utf-8"))
+        architecture["links"][0]["output_ids"] = {}
+        write_json(self.root, "artifacts/model-architecture.json", architecture)
+        report = evaluate_model_architecture(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_non_object_frozen_result_returns_structured_failure(self):
+        self.install_freeze()
+        frozen = json.loads((self.root / "artifacts/frozen-results.json").read_text(encoding="utf-8"))
+        frozen["results"].append("malformed")
+        write_json(self.root, "artifacts/frozen-results.json", frozen)
+        report = evaluate_results_freeze(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_missing_manifest_review_id_cannot_match_missing_ledger_id(self):
+        self.install_freeze()
+        manifest = json.loads((self.root / "artifacts/freeze-manifest.json").read_text(encoding="utf-8"))
+        manifest.pop("h3_review_id")
+        write_json(self.root, "artifacts/freeze-manifest.json", manifest)
+        row = json.loads((self.root / "artifacts/human-review-ledger.jsonl").read_text(encoding="utf-8"))
+        row.pop("id")
+        (self.root / "artifacts/human-review-ledger.jsonl").write_text(json.dumps(row) + "\n", encoding="utf-8")
+        report = evaluate_results_freeze(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_missing_configured_input_is_not_current(self):
+        self.install_freeze()
+        (self.root / "data/raw.csv").unlink()
+        report = evaluate_results_freeze(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
     def test_research_mode_is_not_applicable(self):
         report = evaluate_model_architecture(self.root, {**self.cfg, "execution_mode": "research_autonomous"})
         self.assertEqual(report["status"], "NOT_APPLICABLE")

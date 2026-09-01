@@ -79,8 +79,9 @@ def evaluate_model_architecture(project: Path, config: dict[str, Any]) -> dict[s
         checks.append(_check("G55-EVIDENCE-001", "FAIL", "problem map and model architecture are required", problem_map_error=problem_error, architecture_error=architecture_error))
         return {"status": "FAIL", "mode": mode, "checks": checks}
     question_ids = {item.get("id") for item in _items(problem_map, "questions") if isinstance(item.get("id"), str) and item.get("id")}
+    raw_questions = architecture.get("questions")
     architecture_questions = _items(architecture, "questions")
-    if architecture.get("schema_version") != 1 or not architecture_questions:
+    if architecture.get("schema_version") != 1 or not architecture_questions or not isinstance(raw_questions, list) or any(not isinstance(item, dict) for item in raw_questions):
         checks.append(_check("G55-SHAPE-001", "FAIL", "model architecture must use schema_version 1 and a non-empty questions array"))
         return {"status": "FAIL", "mode": mode, "checks": checks}
     architecture_ids = [item.get("id") for item in architecture_questions]
@@ -98,7 +99,7 @@ def evaluate_model_architecture(project: Path, config: dict[str, Any]) -> dict[s
     for question in architecture_questions:
         qid = question.get("id")
         models = question.get("model_ids", [])
-        if not isinstance(models, list) or any(item not in model_ids for item in models):
+        if not isinstance(models, list) or not models or any(not isinstance(item, str) or item not in model_ids for item in models):
             checks.append(_check("G55-MODEL-DEPENDENCY-001", "FAIL", "architecture model dependency is missing or unresolved", question_id=qid))
         for output in question.get("outputs", []) if isinstance(question.get("outputs"), list) else []:
             if isinstance(output, dict) and isinstance(output.get("id"), str):
@@ -135,11 +136,11 @@ def evaluate_model_architecture(project: Path, config: dict[str, Any]) -> dict[s
         checks.append(_check("G55-LINK-001", "FAIL", "architecture must contain a links array"))
     else:
         for link in links:
-            if not isinstance(link, dict) or link.get("from_question_id") not in question_ids or link.get("to_question_id") not in question_ids:
+            if not isinstance(link, dict) or not isinstance(link.get("from_question_id"), str) or not isinstance(link.get("to_question_id"), str) or link.get("from_question_id") not in question_ids or link.get("to_question_id") not in question_ids:
                 checks.append(_check("G55-LINK-001", "FAIL", "architecture link references unknown questions"))
                 continue
             linked_outputs = link.get("output_ids", [])
-            if not isinstance(linked_outputs, list) or any(item not in output_ids for item in linked_outputs):
+            if not isinstance(linked_outputs, list) or any(not isinstance(item, str) or item not in output_ids for item in linked_outputs):
                 checks.append(_check("G55-LINK-001", "FAIL", "architecture link references unknown outputs"))
             source_question = next((item for item in architecture_questions if item.get("id") == link["from_question_id"]), None)
             if source_question is None:
@@ -169,13 +170,19 @@ def _sha256(path: Path) -> str | None:
 
 
 def _hash_paths(root: Path, paths: list[Path]) -> str | None:
-    existing = sorted({path.resolve() for path in paths if path.is_file()}, key=str)
-    if not existing:
+    if not paths:
         return None
     digest = hashlib.sha256()
-    for path in existing:
-        digest.update(path.relative_to(root).as_posix().encode())
-        digest.update(path.read_bytes())
+    for path in sorted({Path(path).resolve() for path in paths}, key=str):
+        try:
+            relative = path.relative_to(root).as_posix()
+        except ValueError:
+            relative = f"OUTSIDE:{path}"
+        digest.update(relative.encode())
+        if path.is_file():
+            digest.update(path.read_bytes())
+        else:
+            digest.update(b"<MISSING>")
     return digest.hexdigest()
 
 
@@ -185,7 +192,7 @@ def compute_upstream_hashes(project: Path, config: dict[str, Any]) -> dict[str, 
     input_paths = []
     for field in ("statements", "attachments"):
         values = config.get("inputs", {}).get(field, []) if isinstance(config.get("inputs"), dict) else []
-        input_paths.extend((root / item).resolve() for item in values if isinstance(item, str))
+    input_paths.extend((root / item).resolve() for item in values if isinstance(item, str))
     code_paths = [path for folder in (root / "analysis", root / "paper") for path in folder.rglob("*") if path.is_file() and path.suffix.lower() in {".py", ".m", ".r", ".jl", ".tex"}] if (root / "analysis").exists() or (root / "paper").exists() else []
     hashes: dict[str, Any] = {
         "raw_data_hash": _hash_paths(root, input_paths),
@@ -234,8 +241,11 @@ def evaluate_results_freeze(project: Path, config: dict[str, Any]) -> dict[str, 
         checks.append(_check("G6-EVIDENCE-001", "FAIL", "result registry, frozen results, and freeze manifest are required", registry_error=registry_error, frozen_error=frozen_error, manifest_error=manifest_error))
         return {"status": "FAIL", "mode": mode, "checks": checks, "stale_nodes": ["freeze"]}
     registry_items = _items(registry, "results")
+    raw_frozen_results = frozen.get("results")
     frozen_items = _items(frozen, "results")
     frozen_by_id = {item.get("result_id"): item for item in frozen_items if isinstance(item.get("result_id"), str) and item.get("result_id")}
+    if not isinstance(raw_frozen_results, list) or not raw_frozen_results or any(not isinstance(item, dict) for item in raw_frozen_results):
+        checks.append(_check("G6-FROZEN-SHAPE-001", "FAIL", "frozen-results must contain only object records in a non-empty results array"))
     registry_ids = {item.get("id") for item in registry_items if isinstance(item.get("id"), str) and item.get("id")}
     mismatches = []
     for result in registry_items:
@@ -264,7 +274,8 @@ def evaluate_results_freeze(project: Path, config: dict[str, Any]) -> dict[str, 
     if manifest.get("status") != "CURRENT" or manifest.get("schema_version") != 1:
         stale_nodes.add("freeze")
     checks.append(_check("G6-STALE-001", "PASS" if not stale_nodes else "FAIL", "no upstream evidence is stale" if not stale_nodes else "upstream changes propagated stale state", changed_hashes=changed, stale_nodes=sorted(stale_nodes)))
-    h3_ok, h3_message = _human_h3(root, manifest.get("h3_review_id"))
+    review_id = manifest.get("h3_review_id")
+    h3_ok, h3_message = _human_h3(root, review_id) if isinstance(review_id, str) and review_id.strip() else (False, "freeze manifest must reference a non-empty H3 review ID")
     checks.append(_check("G6-H3-001", "PASS" if h3_ok else "FAIL", h3_message, review_id=manifest.get("h3_review_id")))
     status = "PASS" if checks and all(item["status"] == "PASS" for item in checks) else "FAIL"
     return {"status": status, "mode": mode, "checks": checks, "stale_nodes": sorted(stale_nodes), "changed_hashes": changed}
