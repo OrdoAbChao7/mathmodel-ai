@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import load_config
+from .max_rigor import evaluate_max_rigor
 
 
 _FORMAL_MODES = {"competition_assisted", "competition_max"}
@@ -236,14 +237,17 @@ def evaluate_submission(project: Path, config: dict[str, Any] | None = None, rep
         "g7": loaded.get("writer_package"),
         "g8": loaded.get("review_registry"),
     }
+    current_max = evaluate_max_rigor(root, cfg) if mode == "competition_max" else None
     if mode == "competition_max":
-        gates["competition_max"] = loaded.get("max_rigor")
+        gates["competition_max"] = current_max
     gate_ok = all(isinstance(value, dict) and value.get("status") == "PASS" for value in gates.values())
     checks.append(_check("G9-GATE-001", "PASS" if gate_ok else "FAIL", "G0-G8 evidence is complete" if gate_ok else "one or more G0-G8 gates are not PASS", gates={key: value.get("status") if isinstance(value, dict) else None for key, value in gates.items()}))
     if mode == "competition_max":
-        max_report = loaded.get("max_rigor")
-        max_ok = isinstance(max_report, dict) and max_report.get("status") == "PASS"
-        checks.append(_check("G9-MAX-001", "PASS" if max_ok else "FAIL", "competition-max extension evidence is current" if max_ok else "competition-max extension evidence is missing or not PASS"))
+        recorded_max = loaded.get("max_rigor")
+        recorded_ok = isinstance(recorded_max, dict) and recorded_max.get("status") == "PASS"
+        current_ok = isinstance(current_max, dict) and current_max.get("status") == "PASS"
+        max_ok = recorded_ok and current_ok
+        checks.append(_check("G9-MAX-001", "PASS" if max_ok else "FAIL", "competition-max extension evidence is current" if max_ok else "competition-max extension evidence is missing, stale, or not PASS", recorded_status=recorded_max.get("status") if isinstance(recorded_max, dict) else None, current_status=current_max.get("status") if isinstance(current_max, dict) else None))
     open_critical = loaded.get("review_registry", {}).get("open_critical") if isinstance(loaded.get("review_registry"), dict) else None
     critical_ok = isinstance(open_critical, list) and not open_critical
     checks.append(_check("G9-CRITICAL-001", "PASS" if critical_ok else "FAIL", "no open critical review findings", open_critical=open_critical))

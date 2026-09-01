@@ -75,6 +75,14 @@ class SubmissionTests(unittest.TestCase):
         self.assertEqual(result["status"], "FAIL")
         self.assertTrue(any(item["rule"] == "G9-MAX-001" for item in result["checks"]))
 
+    def test_competition_max_recomputes_current_extension_evidence(self):
+        report = self.report()
+        report["max_rigor"] = {"status": "PASS"}
+        result = evaluate_submission(self.root, self.config("competition_max"), report)
+        self.assertEqual(result["status"], "FAIL")
+        max_check = next(item for item in result["checks"] if item["rule"] == "G9-MAX-001")
+        self.assertEqual(max_check["status"], "FAIL")
+
     def test_identity_in_source_blocks_submission(self):
         (self.root / "paper" / "main.tex").write_text("姓名：张三\\begin{document}AI usage disclosure.\\end{document}", encoding="utf-8")
         result = evaluate_submission(self.root, self.config(), self.report())
