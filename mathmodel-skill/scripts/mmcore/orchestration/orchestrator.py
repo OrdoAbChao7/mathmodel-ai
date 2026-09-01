@@ -45,7 +45,9 @@ def _evidence_snapshot(project: Path, stage: str) -> dict[str, Any] | None:
     """Hash the on-disk outputs that make a completed stage resumable."""
     root = Path(project).resolve()
     if stage == "build":
-        paths = [root / "build" / "quality-report.json", root / "build" / "build-report.json"]
+        # audit legitimately refreshes quality-report.json; build-report.json is
+        # the stable completion marker for the earlier stage.
+        paths = [root / "build" / "build-report.json"]
     elif stage == "audit":
         paths = [root / "build" / "quality-report.json"]
     elif stage == "package":
@@ -73,7 +75,8 @@ def _stage_outputs_pass(project: Path, stage: str) -> bool:
         quality_path = root / "build" / "quality-report.json"
         if stage in {"build", "audit"}:
             quality = json.loads(quality_path.read_text(encoding="utf-8"))
-            if not isinstance(quality, dict) or quality.get("quality", {}).get("release_status") != "PASS":
+            quality_section = quality.get("quality") if isinstance(quality, dict) else None
+            if not isinstance(quality_section, dict) or quality_section.get("release_status") != "PASS":
                 return False
             gates = quality.get("page_gates")
             if not isinstance(gates, list) or not gates or any(not isinstance(gate, dict) or gate.get("status") != "PASS" for gate in gates):
