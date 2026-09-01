@@ -44,3 +44,5 @@ Formal G8 review also requires an independent innovation assessment backed by re
 Formal validation also requires `artifacts/experiment-registry.json`; its records bind runs to code, inputs, configuration, seed, environment, metrics, figures, and result artifacts, with hashes recomputed by the local evaluator.
 
 At G9, release hash entries are independently recomputed against current project files; a forged `PASS`, stale digest, duplicate path, or unsafe path blocks submission.
+
+G9 also binds the quality report to its current source manifest and reproducibility summary, including the current configuration hash.

@@ -33,7 +33,48 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _inside(root: Path, value: str) -> Path | None:
+def _load_object(path: Path | None) -> dict[str, Any] | None:
+    if path is None or not path.is_file():
+        return None
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def _report_provenance(root: Path, report: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
+    """Ensure generated manifests still describe this current workspace."""
+    config_path = root / "mathmodel.json"
+    summary_path = _inside(root, report.get("reproducibility_summary"))
+    source_path = _inside(root, report.get("source_manifest"))
+    summary = _load_object(summary_path)
+    source = _load_object(source_path)
+    config_hash = _sha256(config_path) if config_path.is_file() else None
+    summary_ok = isinstance(summary, dict) and summary.get("config_sha256") == config_hash
+    entries = source.get("files") if isinstance(source, dict) else None
+    manifest_ok = isinstance(entries, list) and bool(entries)
+    errors: list[Any] = []
+    seen: set[str] = set()
+    if manifest_ok:
+        for entry in entries:
+            relative = entry.get("path") if isinstance(entry, dict) else None
+            candidate = _inside(root, relative) if isinstance(relative, str) else None
+            normalized = relative.replace("\\", "/") if isinstance(relative, str) else None
+            actual = _sha256(candidate) if candidate is not None and candidate.is_file() else None
+            expected = entry.get("sha256") if isinstance(entry, dict) else None
+            if not isinstance(normalized, str) or normalized in seen or actual != expected:
+                errors.append({"path": relative, "expected": expected, "actual": actual})
+            else:
+                seen.add(normalized)
+        manifest_ok = not errors and "mathmodel.json" in seen
+    ok = summary_ok and manifest_ok
+    return ok, {"source_manifest": str(source_path) if source_path else None, "reproducibility_summary": str(summary_path) if summary_path else None, "config_sha256": config_hash, "summary_ok": summary_ok, "manifest_ok": manifest_ok, "errors": errors}
+
+
+def _inside(root: Path, value: Any) -> Path | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
     path = Path(value)
     if not path.is_absolute():
         path = root / path
@@ -144,10 +185,12 @@ def evaluate_submission(project: Path, config: dict[str, Any] | None = None, rep
     mode = cfg.get("execution_mode", "research_autonomous")
     if mode not in _FORMAL_MODES:
         return {"status": "NOT_APPLICABLE", "mode": mode, "checks": [_check("G9-MODE-001", "PASS", "G9 is reserved for formal competition modes", mode=mode)]}
-    checks: list[dict[str, Any]] = []
     loaded = _load_report(root, report)
     if loaded is None:
         return {"status": "FAIL", "mode": mode, "checks": [_check("G9-REPORT-001", "FAIL", "quality report is missing or malformed")]}
+
+    provenance_ok, provenance_evidence = _report_provenance(root, loaded)
+    checks: list[dict[str, Any]] = [_check("G9-PROVENANCE-001", "PASS" if provenance_ok else "FAIL", "quality report provenance matches current workspace" if provenance_ok else "quality report provenance is missing or stale", **provenance_evidence)]
 
     gates = {
         "compliance": loaded.get("compliance"),
