@@ -1,0 +1,26 @@
+schema_version: 1
+capabilities:
+  - id: candidate_generation
+    owner: local
+    providers: [xiaoma]
+    external_decision_allowed: false
+  - id: red_team
+    owner: local_review_system
+    providers: [ars]
+    external_decision_allowed: false
+  - id: workflow_concepts
+    owner: local
+    providers: [automcm, zhnnky]
+    external_decision_allowed: false
+  - id: model_selection
+    owner: local_method_judge
+    providers: [local_method_judge]
+    external_decision_allowed: false
+  - id: validation
+    owner: local_validation_engine
+    providers: [local_validation_engine]
+    external_decision_allowed: false
+  - id: final_release
+    owner: local_g9
+    providers: [local_g9]
+    external_decision_allowed: false
