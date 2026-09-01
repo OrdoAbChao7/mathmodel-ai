@@ -112,6 +112,11 @@ def package(project: Path, report: dict[str, Any] | str | Path | None = None) ->
         g1 = loaded.get("g1")
         if not isinstance(g1, dict) or g1.get("status") != "PASS":
             checks.append(_record("PACKAGE-INTERPRETATION-001", "FAIL", "formal competition package requires PASS G1 interpretation evidence"))
+        tournament = loaded.get("model_tournament")
+        g2 = tournament.get("g2") if isinstance(tournament, dict) else None
+        g3 = tournament.get("g3") if isinstance(tournament, dict) else None
+        if not isinstance(g2, dict) or not isinstance(g3, dict) or g2.get("status") != "PASS" or g3.get("status") != "PASS":
+            checks.append(_record("PACKAGE-MODEL-TOURNAMENT-001", "FAIL", "formal competition package requires PASS G2 and G3 model-search evidence"))
     quality = loaded.get("quality") if isinstance(loaded.get("quality"), dict) else {}
     manual = quality.get("manual_review")
     if manual != "COMPLETE":
