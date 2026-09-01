@@ -99,6 +99,8 @@ def load_case_registry(project: Path, registry_path: Path | str | None = None) -
             raise BenchmarkError(f"cases[{index}].case_id must be unique and non-empty")
         if not isinstance(title, str) or not title:
             raise BenchmarkError(f"cases[{index}].title must be a non-empty string")
+        if not isinstance(case.get("source"), str) or not case["source"].strip():
+            raise BenchmarkError(f"cases[{index}].source must be a non-empty provenance reference")
         if problem_type not in _PROBLEM_TYPES:
             raise BenchmarkError(f"cases[{index}].problem_type is unsupported")
         seen.add(case_id)

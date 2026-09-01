@@ -72,6 +72,15 @@ class BenchmarkTests(unittest.TestCase):
         with self.assertRaises(BenchmarkError):
             load_case_registry(self.root, bad)
 
+    def test_registry_requires_case_provenance(self):
+        path = self.root / "missing-source.json"
+        path.write_text(json.dumps({
+            "schema_version": 1,
+            "cases": [{"case_id": "x", "title": "x", "problem_type": "statistics", "project": "cases/forecasting"}],
+        }), encoding="utf-8")
+        with self.assertRaises(BenchmarkError):
+            load_case_registry(self.root, path)
+
     def test_ab_runner_aggregates_and_promotes_meaningful_improvement(self):
         registry = load_case_registry(self.root, self.registry())
         report = run_ab_benchmark(
