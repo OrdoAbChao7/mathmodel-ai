@@ -1,0 +1,34 @@
+schema_version: 1
+sources:
+  - id: xiaoma
+    repository: https://github.com/XiaoMaColtAI/math-modeling-skill
+    pinned_commit: 08cb5ee1df56bdd16e34a30d0153ec2d0e4d531e
+    license: UNVERIFIED
+    integration_mode: EXTERNAL_ADAPTER
+    capabilities: [candidate_generation]
+    authority: knowledge_provider
+    attribution: XiaoMaColtAI
+  - id: ars
+    repository: https://github.com/Imbad0202/academic-research-skills
+    pinned_commit: e8bf858be714d03cef6b138d81f3aab9b7f72c43
+    license: UNVERIFIED
+    integration_mode: EXTERNAL_ADAPTER
+    capabilities: [red_team]
+    authority: reviewer_only
+    attribution: Imbad0202
+  - id: automcm
+    repository: https://github.com/RealSeaberry/AutoMCM-Pro
+    pinned_commit: 31a30c65c8d49a49b82b72966661a7ee97cccbc3
+    license: UNVERIFIED
+    integration_mode: ABSTRACT_INSPIRED
+    capabilities: [workflow_concepts]
+    authority: inspiration_only
+    attribution: RealSeaberry
+  - id: zhnnky
+    repository: https://github.com/zhnnky329/MathModeling-skills
+    pinned_commit: 046a6e74814c2e5fef72b5ee56305509a8635e1d
+    license: UNVERIFIED
+    integration_mode: ABSTRACT_INSPIRED
+    capabilities: [workflow_concepts]
+    authority: inspiration_only
+    attribution: zhnnky329
