@@ -43,6 +43,8 @@ def _safe_file(root: Path, value: Any) -> Path | None:
 
 
 def _mode_status(config: dict[str, Any]) -> tuple[str, str | None, dict[str, Any] | None]:
+    if not isinstance(config, dict):
+        return "FAIL", None, {"rule": "G55-CONFIG-000", "status": "FAIL", "message": "configuration must be an object"}
     mode = config.get("execution_mode", "research_autonomous")
     if not isinstance(mode, str):
         return "FAIL", None, {"rule": "G55-CONFIG-001", "status": "FAIL", "message": "execution_mode must be a string"}
@@ -82,12 +84,13 @@ def evaluate_model_architecture(project: Path, config: dict[str, Any]) -> dict[s
         checks.append(_check("G55-SHAPE-001", "FAIL", "model architecture must use schema_version 1 and a non-empty questions array"))
         return {"status": "FAIL", "mode": mode, "checks": checks}
     architecture_ids = [item.get("id") for item in architecture_questions]
-    if set(architecture_ids) != question_ids or len(set(architecture_ids)) != len(architecture_ids):
+    valid_architecture_ids = [item for item in architecture_ids if isinstance(item, str) and item]
+    if set(valid_architecture_ids) != question_ids or len(set(valid_architecture_ids)) != len(architecture_ids):
         checks.append(_check("G55-COVERAGE-001", "FAIL", "architecture question nodes must exactly cover the problem map", problem_questions=sorted(question_ids), architecture_questions=architecture_ids))
     else:
         checks.append(_check("G55-COVERAGE-001", "PASS", "architecture covers every problem-map question"))
     model_registry, _ = _read_json(root / "artifacts" / "model-registry.json")
-    model_ids = {item.get("id") for item in _items(model_registry, "models")}
+    model_ids = {item.get("id") for item in _items(model_registry, "models") if isinstance(item.get("id"), str) and item.get("id")}
     symbol_units: dict[str, str] = {}
     parameter_units: dict[str, str] = {}
     assumption_text: dict[str, str] = {}
@@ -138,7 +141,10 @@ def evaluate_model_architecture(project: Path, config: dict[str, Any]) -> dict[s
             linked_outputs = link.get("output_ids", [])
             if not isinstance(linked_outputs, list) or any(item not in output_ids for item in linked_outputs):
                 checks.append(_check("G55-LINK-001", "FAIL", "architecture link references unknown outputs"))
-            source_question = next(item for item in architecture_questions if item.get("id") == link["from_question_id"])
+            source_question = next((item for item in architecture_questions if item.get("id") == link["from_question_id"]), None)
+            if source_question is None:
+                checks.append(_check("G55-LINK-001", "FAIL", "architecture link source node is missing", link=link))
+                continue
             uncertain = {item.get("id") for item in source_question.get("outputs", []) if isinstance(item, dict) and item.get("uncertain") is True}
             if uncertain.intersection(linked_outputs) and link.get("uncertainty_propagation") in {None, "none", "ignored"}:
                 checks.append(_check("UNCERTAINTY_PROPAGATION_GAP", "FAIL", "uncertain output is consumed without declared uncertainty propagation", link=link))
@@ -229,7 +235,8 @@ def evaluate_results_freeze(project: Path, config: dict[str, Any]) -> dict[str, 
         return {"status": "FAIL", "mode": mode, "checks": checks, "stale_nodes": ["freeze"]}
     registry_items = _items(registry, "results")
     frozen_items = _items(frozen, "results")
-    frozen_by_id = {item.get("result_id"): item for item in frozen_items}
+    frozen_by_id = {item.get("result_id"): item for item in frozen_items if isinstance(item.get("result_id"), str) and item.get("result_id")}
+    registry_ids = {item.get("id") for item in registry_items if isinstance(item.get("id"), str) and item.get("id")}
     mismatches = []
     for result in registry_items:
         frozen_result = frozen_by_id.get(result.get("id"))
@@ -237,7 +244,7 @@ def evaluate_results_freeze(project: Path, config: dict[str, Any]) -> dict[str, 
         actual = {key: frozen_result.get(key) for key in expected} if frozen_result else None
         if actual != expected:
             mismatches.append(result.get("id"))
-    if set(frozen_by_id) != {item.get("id") for item in registry_items} or mismatches:
+    if set(frozen_by_id) != registry_ids or len(registry_ids) != len(registry_items) or mismatches:
         checks.append(_check("G6-FROZEN-RESULT-001", "FAIL", "frozen results do not exactly match the current result registry", mismatches=mismatches))
     else:
         checks.append(_check("G6-FROZEN-RESULT-001", "PASS", "frozen results match the current result registry"))

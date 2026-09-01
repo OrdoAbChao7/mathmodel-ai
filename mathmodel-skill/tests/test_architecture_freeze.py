@@ -95,6 +95,22 @@ class ArchitectureFreezeTests(unittest.TestCase):
         report = evaluate_results_freeze(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
 
+    def test_malformed_frozen_result_id_returns_structured_failure(self):
+        self.install_freeze()
+        frozen = json.loads((self.root / "artifacts/frozen-results.json").read_text(encoding="utf-8"))
+        frozen["results"][0]["result_id"] = []
+        write_json(self.root, "artifacts/frozen-results.json", frozen)
+        report = evaluate_results_freeze(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_malformed_architecture_id_returns_structured_failure(self):
+        self.install_architecture()
+        architecture = json.loads((self.root / "artifacts/model-architecture.json").read_text(encoding="utf-8"))
+        architecture["questions"][0]["id"] = []
+        write_json(self.root, "artifacts/model-architecture.json", architecture)
+        report = evaluate_model_architecture(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
     def test_research_mode_is_not_applicable(self):
         report = evaluate_model_architecture(self.root, {**self.cfg, "execution_mode": "research_autonomous"})
         self.assertEqual(report["status"], "NOT_APPLICABLE")
