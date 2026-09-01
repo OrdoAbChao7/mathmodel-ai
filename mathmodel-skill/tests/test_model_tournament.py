@@ -100,6 +100,30 @@ class ModelTournamentTests(unittest.TestCase):
         self.assertEqual(report["g2"]["status"], "PASS")
         self.assertEqual(report["g3"]["status"], "PASS")
 
+    def test_fast_rigor_allows_smaller_candidate_breadth_but_keeps_h2(self):
+        self.install_valid()
+        candidates = json.loads((self.root / "artifacts/candidate-registry.json").read_text(encoding="utf-8"))["candidates"][:2]
+        write_json(self.root, "artifacts/candidate-registry.json", {"schema_version": 1, "problem_id": "P1", "candidates": candidates})
+        write_json(self.root, "artifacts/method-cards.json", {"schema_version": 1, "cards": [card("CARD-linear", "linear"), card("CARD-tree", "tree")]})
+        write_json(self.root, "artifacts/risk-probe.json", {"schema_version": 1, "generated_by": "local_risk_engine", "probes": [{"candidate_id": item["id"], **risk()} for item in candidates]})
+        write_jsonl(self.root, "artifacts/decision-ledger.jsonl", [
+            {"id": "D-0001", "candidate_id": "M1", "decision": "SELECTED", "reason": "validated alternate", "timestamp": datetime.now(timezone.utc).isoformat(), "reviewed_artifacts": ["artifacts/candidate-registry.json"]},
+            {"id": "D-0002", "candidate_id": "M0", "decision": "REJECTED", "reason": "baseline comparator", "timestamp": datetime.now(timezone.utc).isoformat(), "reviewed_artifacts": ["artifacts/candidate-registry.json"]},
+        ])
+        report = evaluate_model_tournament(self.root, {**self.cfg, "rigor": "fast"})
+        self.assertEqual(report["status"], "PASS", report)
+        self.assertEqual(report["rigor"], "fast")
+        self.assertEqual(report["limits"]["minimum_total_candidates"], 2)
+
+    def test_fast_rigor_does_not_weaken_critical_risk_gate(self):
+        self.install_valid()
+        data = json.loads((self.root / "artifacts/risk-probe.json").read_text(encoding="utf-8"))
+        data["probes"][1]["leakage_risk"] = {"status": "CRITICAL", "evidence": "future data leakage"}
+        write_json(self.root, "artifacts/risk-probe.json", data)
+        report = evaluate_model_tournament(self.root, {**self.cfg, "rigor": "fast"})
+        self.assertEqual(report["g2"]["status"], "FAIL")
+        self.assertTrue(any(check["rule"] == "G2-RISK-001" for check in report["g2"]["checks"]))
+
     def test_missing_baseline_fails_g2(self):
         self.install_valid()
         data = json.loads((self.root / "artifacts/candidate-registry.json").read_text(encoding="utf-8"))
@@ -219,6 +243,11 @@ class ModelTournamentTests(unittest.TestCase):
     def test_malformed_execution_mode_returns_structured_failure(self):
         report = evaluate_model_tournament(self.root, {"contest": "CUMCM", "execution_mode": []})
         self.assertEqual(report["status"], "FAIL")
+
+    def test_malformed_rigor_returns_structured_failure(self):
+        report = evaluate_model_tournament(self.root, {"contest": "CUMCM", "execution_mode": "competition_assisted", "rigor": []})
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["g2"]["checks"][0]["rule"], "G2-CONFIG-002")
 
 
 if __name__ == "__main__":

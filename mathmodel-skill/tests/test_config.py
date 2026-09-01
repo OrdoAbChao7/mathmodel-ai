@@ -75,6 +75,27 @@ class ConfigTests(unittest.TestCase):
         with self.assertRaises(ConfigError):
             load_config(self.root)
 
+    def test_accepts_supported_rigor_modes(self):
+        for rigor in ("fast", "standard", "max"):
+            cfg = valid_config()
+            cfg["rigor"] = rigor
+            write_json(self.root / "mathmodel.json", cfg)
+            self.assertEqual(load_config(self.root)["rigor"], rigor)
+
+    def test_rejects_unknown_rigor(self):
+        cfg = valid_config()
+        cfg["rigor"] = "unbounded"
+        write_json(self.root / "mathmodel.json", cfg)
+        with self.assertRaises(ConfigError):
+            load_config(self.root)
+
+    def test_rejects_non_string_rigor(self):
+        cfg = valid_config()
+        cfg["rigor"] = []
+        write_json(self.root / "mathmodel.json", cfg)
+        with self.assertRaises(ConfigError):
+            load_config(self.root)
+
     def test_main_help_returns_zero(self):
         self.assertEqual(main(["--help"]), 0)
 

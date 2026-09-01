@@ -4,6 +4,8 @@
   "title": "待求解题目",
   "contest": "CUMCM",
   "problem_type": "optimization",
+  "execution_mode": "competition_assisted",
+  "rigor": "standard",
   "inputs": {
     "statements": ["problem/problem.pdf"],
     "attachments": ["data/raw/attachment.xlsx"]
