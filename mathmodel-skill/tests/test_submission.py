@@ -92,6 +92,7 @@ class SubmissionTests(unittest.TestCase):
             "model_scout_records": [{"id": "scout-1"}, {"id": "scout-2"}],
             "candidate_route_records": [{"id": f"route-{index}"} for index in range(1, 5)],
             "red_team_round_records": [{"id": "red-1"}, {"id": "red-2"}],
+            "robustness_attack_records": [{"id": "attack-1", "attack_type": "alternative_split"}, {"id": "attack-2", "attack_type": "extreme_scenario"}, {"id": "attack-3", "attack_type": "bootstrap"}],
             "robustness_attacks": ["alternative_split", "extreme_scenario", "bootstrap"],
             "external_reviews": [{"provider": "ars", "status": "COMPLETE", "evidence": "artifacts/ars-review.json"}],
         }), encoding="utf-8")

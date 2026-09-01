@@ -32,6 +32,7 @@ class MaxRigorTests(unittest.TestCase):
             "model_scout_records": [{"id": "scout-1"}, {"id": "scout-2"}, {"id": "scout-3"}],
             "candidate_route_records": [{"id": "route-1"}, {"id": "route-2"}, {"id": "route-3"}, {"id": "route-4"}],
             "red_team_round_records": [{"id": "red-1"}, {"id": "red-2"}],
+            "robustness_attack_records": [{"id": "attack-1", "attack_type": "alternative_split"}, {"id": "attack-2", "attack_type": "extreme_scenario"}, {"id": "attack-3", "attack_type": "bootstrap"}],
             "model_scouts": 3,
             "candidate_routes_reviewed": 4,
             "robustness_attacks": ["alternative_split", "extreme_scenario", "bootstrap"],
@@ -55,6 +56,15 @@ class MaxRigorTests(unittest.TestCase):
         report = evaluate_max_rigor(self.root, self.cfg)
         self.assertEqual(report["status"], "PASS", report)
         self.assertEqual(report["requirements"]["red_team_round_records"], 2)
+
+    def test_max_robustness_cannot_be_satisfied_by_free_standing_attack_names(self):
+        data = self.valid()
+        data.pop("robustness_attack_records")
+        self.write(data)
+        report = evaluate_max_rigor(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+        robustness = next(check for check in report["checks"] if check["rule"] == "G8-MAX-ROBUSTNESS-001")
+        self.assertEqual(robustness["status"], "FAIL")
 
     def test_max_mode_fails_without_ars_review(self):
         data = self.valid()

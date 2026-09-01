@@ -41,6 +41,7 @@ competition_max:
     model_scouts: model_scout_records
     candidate_routes_reviewed: candidate_route_records
     red_team_rounds: red_team_round_records
+    robustness_attacks: robustness_attack_records
   minimum_model_scouts: 2
   minimum_candidate_routes_reviewed: 4
   minimum_red_team_rounds: 2

@@ -22,6 +22,7 @@ _DEFAULT_DEPTH_RECORD_FIELDS = {
     "model_scouts": "model_scout_records",
     "candidate_routes_reviewed": "candidate_route_records",
     "red_team_rounds": "red_team_round_records",
+    "robustness_attacks": "robustness_attack_records",
 }
 
 
@@ -52,6 +53,22 @@ def _record_count(data: dict[str, Any], field: str) -> int | None:
         return None
     identifiers = [item["id"] for item in records]
     return len(records) if len(identifiers) == len(set(identifiers)) else None
+
+
+def _record_types(data: dict[str, Any], field: str) -> set[str] | None:
+    records = data.get(field)
+    if not isinstance(records, list) or not records:
+        return None
+    identifiers: list[str] = []
+    types: list[str] = []
+    for item in records:
+        if not isinstance(item, dict) or not _text(item.get("id")) or not _text(item.get("attack_type")):
+            return None
+        identifiers.append(item["id"])
+        types.append(item["attack_type"])
+    if len(identifiers) != len(set(identifiers)):
+        return None
+    return set(types)
 
 
 def _requirements() -> tuple[dict[str, int], set[str], str, dict[str, str]]:
@@ -101,9 +118,10 @@ def evaluate_max_rigor(project: Path, config: dict[str, Any]) -> dict[str, Any]:
         value = _record_count(data, field)
         ok = value is not None and value >= minimum
         checks.append(_check("G8-MAX-DEPTH-001", "PASS" if ok else "FAIL", f"{field} meets max-mode minimum" if ok else f"{field} is missing, malformed, or below max-mode minimum", field=field, actual=value, minimum=minimum))
-    attacks = data.get("robustness_attacks")
-    attack_ok = isinstance(attacks, list) and required_attacks <= {item for item in attacks if isinstance(item, str)}
-    checks.append(_check("G8-MAX-ROBUSTNESS-001", "PASS" if attack_ok else "FAIL", "extended robustness attacks are recorded" if attack_ok else "max mode lacks required robustness attacks", required=sorted(required_attacks), actual=attacks))
+    attack_field = depth_record_fields["robustness_attacks"]
+    attack_types = _record_types(data, attack_field)
+    attack_ok = attack_types is not None and required_attacks <= attack_types
+    checks.append(_check("G8-MAX-ROBUSTNESS-001", "PASS" if attack_ok else "FAIL", "extended robustness attacks are recorded" if attack_ok else "max mode lacks required structured robustness attacks", field=attack_field, required=sorted(required_attacks), actual=sorted(attack_types) if attack_types is not None else None))
     reviews = data.get("external_reviews")
     ars = [item for item in reviews if isinstance(item, dict) and item.get("provider") == required_provider] if isinstance(reviews, list) else []
     invalid_evidence = [item.get("evidence") for item in ars if _safe_existing_file(root, item.get("evidence")) is None]
