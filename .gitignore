@@ -47,3 +47,7 @@ mathmodel-skill/vendor/
 # Content-addressed benchmark reports are local run evidence, not source.
 /benchmarks/reports/*.json
 /.miktex/
+
+# Private real-case corpus and isolated agent workspaces (never publish).
+/benchmarks-private/
+/benchmark-workspaces/

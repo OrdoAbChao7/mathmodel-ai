@@ -2,6 +2,10 @@
 
 This project provides a reproducible workflow for producing and auditing mathematical-modeling contest papers. It includes a reusable `mathmodel-skill`, deterministic CLI checks, evidence registries, solver/analysis runners, LaTeX page-balance gates, end-to-end fixtures, a competition-max benchmark, and release packaging rules.
 
+## Current development stage
+
+The Competition OS core and deterministic benchmark infrastructure are substantially implemented. The current frontier is real-case empirical training; see [docs/handoff/NEXT.md](docs/handoff/NEXT.md) before continuing development.
+
 Core CLI dependencies are listed in `requirements.txt`. GitHub Actions runs the regression suite and isolated fixture benchmark on every push and pull request targeting `main`.
 
 Supported problem profiles are `forecasting`, `optimization`, `evaluation`, `mechanism`, `simulation`, `classification`, `statistics`, and `hybrid`. The classification and statistics profiles include dedicated validation requirements and writing references; unsupported types fail during configuration loading.
