@@ -3,6 +3,8 @@
   "name": "local-fixture-smoke",
   "purpose": "Validate the benchmark harness execution path only; not a competition score.",
   "repeats": 3,
+  "runner_script": "benchmarks/fixture_command_runner.py",
+  "timeout_seconds": 120,
   "control": {
     "provider": "deterministic-fixture",
     "model": "fixture-v1",
