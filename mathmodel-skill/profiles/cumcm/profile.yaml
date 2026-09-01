@@ -78,3 +78,19 @@ validation_requirements:
     - feasibility
     - objective_recomputation
     - validation_feasibility
+experiment_provenance:
+  evidence_artifact: artifacts/experiment-registry.json
+  required_fields:
+    - run_id
+    - question_id
+    - model_id
+    - code_hashes
+    - input_hashes
+    - config_hash
+    - seed
+    - environment
+    - started_at
+    - ended_at
+    - metrics
+    - figures
+    - result_artifacts

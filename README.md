@@ -38,3 +38,5 @@ New projects use configuration schema v2. Existing v1 configurations are accepte
 Formal G8 review also requires an independent innovation assessment backed by result/validation references; using a newer algorithm alone is not treated as innovation.
 
 `competition_max` additionally requires `artifacts/competition-max-review.json`, documenting at least two model scouts, four candidate routes, three robustness attacks, two red-team rounds, and a completed ARS review. `competition_assisted` does not require this extension artifact.
+
+Formal validation also requires `artifacts/experiment-registry.json`; its records bind runs to code, inputs, configuration, seed, environment, metrics, figures, and result artifacts, with hashes recomputed by the local evaluator.
