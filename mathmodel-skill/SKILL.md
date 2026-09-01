@@ -3,9 +3,11 @@ name: mathmodel-skill
 description: Use when creating, revising, modeling, or handling compile and quality-audit requests for CUMCM mathematical-modeling papers; working with contest data, reproducibility, LaTeX, or page-balance (正文/附录) evidence.
 ---
 
-# MathModel Paper Factory
+# MathModel-AI v2 — CUMCM Competition OS
 
 Coordinate CUMCM paper work through traceable project artifacts. Treat the CLI as the source of deterministic checks and reserve mathematical judgment for documented human review.
+
+For formal CUMCM work, use `competition_assisted` or `competition_max`; do not treat unattended generation followed by submission as the default workflow. The system is an evidence-and-governance pipeline, not a free-form paper generator.
 
 ## Start from the project state
 
@@ -14,6 +16,23 @@ Coordinate CUMCM paper work through traceable project artifacts. Treat the CLI a
 3. Inspect inputs before modeling: `python mathmodel-skill/scripts/mathmodel.py inspect PROJECT --json`.
 4. Read [workflow.md](references/workflow.md), then read only the problem-type and delivery references required below.
 5. Build a problem map before drafting equations, code, tables, or conclusions.
+
+## Formal competition sequence
+
+Run the stages in this order and stop at the human checkpoints:
+
+```text
+inspect → interpretation tournament → H1
+→ model tournament/risk probe → H2
+→ experiments → machine validation/falsification
+→ cross-question coherence → H3
+→ freeze → evidence-bound paper → independent reviews
+→ H4 → submission → package
+```
+
+Use `mathmodel run PROJECT --profile cumcm --mode competition-max` only as an orchestrator for these governed stages. In formal modes it must block before build until H1/H2, before audit until H3, and before package until H4. A missing ledger, unresolved interpretation conflict, stale freeze, unsupported claim, open critical finding, or failed G9 check is a blocker—not a prose issue to explain away.
+
+The four signoffs are substantive decisions: H1 locks objectives, constraints, outputs, and dependencies; H2 selects one justified route after baseline/diversity/risk comparison; H3 verifies numbers, figures, conclusions, and limitations against frozen evidence; H4 approves the final PDF, supporting materials, citations, anonymity, and AI-use detail. Never synthesize a signoff merely to make a gate pass.
 
 ## Use the CLI for deterministic evidence
 
@@ -62,6 +81,8 @@ Read [paper-architecture.md](references/paper-architecture.md) for the section c
 | Verify contest, literature, or citation support | [research-and-citation.md](references/research-and-citation.md) |
 
 Use vendored CUMCM templates only as structural baselines. Read the supplied current contest notice for submission rules; do not copy vendored answers, data, or conclusions.
+
+For `competition_max`, also provide `artifacts/competition-max-review.json` with the configured scout depth, route coverage, robustness attacks, red-team rounds, and a completed ARS review whose evidence path is an existing project-relative file. External providers may advise, but local evaluators alone decide PASS/FAIL.
 
 ## Validate before writing conclusions
 
