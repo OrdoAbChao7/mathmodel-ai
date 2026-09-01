@@ -12,6 +12,7 @@ from typing import Any
 from .config import load_config
 from .compliance import requires_formal_compliance
 from .manifest import inventory_project, sha256_file
+from .submission import evaluate_submission
 
 
 def _record(rule: str, status: str, message: str, **extra: Any) -> dict[str, Any]:
@@ -105,6 +106,9 @@ def package(project: Path, report: dict[str, Any] | str | Path | None = None) ->
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         return {"status": "BLOCKED", "checks": [_record("PACKAGE-INPUT-001", "FAIL", str(exc))]}
     checks = list(_gate_records(loaded))
+    submission = evaluate_submission(root, cfg, loaded)
+    if requires_formal_compliance(cfg) and submission.get("status") != "PASS":
+        checks.append(_record("PACKAGE-G9-001", "FAIL", "formal competition package requires G9 submission readiness", g9_status=submission.get("status")))
     compliance = loaded.get("compliance")
     if requires_formal_compliance(cfg):
         if not isinstance(compliance, dict) or compliance.get("status") != "PASS":
