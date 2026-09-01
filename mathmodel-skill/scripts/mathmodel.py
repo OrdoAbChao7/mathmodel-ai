@@ -16,6 +16,7 @@ from mmcore.model_tournament import evaluate_model_tournament
 from mmcore.semantic_validation import evaluate_semantic_validation
 from mmcore.architecture_freeze import evaluate_model_architecture, evaluate_results_freeze
 from mmcore.paper_review import evaluate_review_registry, evaluate_writer_package
+from mmcore.max_rigor import evaluate_max_rigor
 from mmcore.external_capabilities import evaluate_capability_configuration
 from mmcore.orchestration.orchestrator import run_pipeline
 from mmcore.benchmark import BenchmarkError, load_case_registry, run_configured_benchmark, write_benchmark_report
@@ -46,6 +47,7 @@ def _write_quality_reports(
     writer_package: dict | None = None,
     review_registry: dict | None = None,
     external_capabilities: dict | None = None,
+    max_rigor: dict | None = None,
 ) -> tuple[Path, Path, dict]:
     build = project / "build"
     build.mkdir(parents=True, exist_ok=True)
@@ -66,6 +68,7 @@ def _write_quality_reports(
         "writer_package": writer_package or {"status": "NOT_APPLICABLE", "checks": []},
         "review_registry": review_registry or {"status": "NOT_APPLICABLE", "checks": []},
         "external_capabilities": external_capabilities or {"status": "PASS", "checks": []},
+        "max_rigor": max_rigor or {"status": "NOT_APPLICABLE", "checks": []},
     }
     # Persist the evidence objects consumed by the strict release packager.
     # They are generated from the same contract and inventory used for this
@@ -150,6 +153,7 @@ def _write_quality_reports(
         f"- G7 paper evidence: {report['writer_package']['status']}",
         f"- G8 adversarial review: {report['review_registry']['status']}",
         f"- External capability configuration: {report['external_capabilities']['status']}",
+        f"- Competition-max extensions: {report['max_rigor']['status']}",
         "",
         "## Dimensions",
         "",
@@ -245,6 +249,17 @@ def _capability_gate(report: dict) -> dict:
         "severity": "FAIL",
         "status": "PASS" if status == "PASS" else "FAIL",
         "message": "external capability configuration is pinned and bounded" if status == "PASS" else "external capability configuration is invalid",
+        "evidence": {"status": status, "checks": report.get("checks", []) if isinstance(report, dict) else []},
+    }
+
+
+def _max_rigor_gate(report: dict) -> dict:
+    status = report.get("status") if isinstance(report, dict) else None
+    return {
+        "rule": "G8-MAX-EXTENSIONS-001",
+        "severity": "FAIL",
+        "status": "PASS" if status in {"PASS", "NOT_APPLICABLE"} else "FAIL",
+        "message": "competition-max extensions are complete" if status == "PASS" else ("competition-max extensions are not applicable" if status == "NOT_APPLICABLE" else "competition-max extensions are incomplete"),
         "evidence": {"status": status, "checks": report.get("checks", []) if isinstance(report, dict) else []},
     }
 
@@ -505,12 +520,14 @@ def main(argv: list[str] | None = None) -> int:
         writer_package = evaluate_writer_package(project, cfg)
         review_registry = evaluate_review_registry(project, cfg)
         external_capabilities = evaluate_capability_configuration(project)
+        max_rigor = evaluate_max_rigor(project, cfg)
         page_gates.append(_phase6_gate(writer_package, "G7-PAPER-EVIDENCE-READY-001", "paper evidence is ready"))
         page_gates.append(_phase6_gate(review_registry, "G8-ADVERSARIAL-REVIEW-001", "adversarial review is passed"))
         page_gates.append(_capability_gate(external_capabilities))
+        page_gates.append(_max_rigor_gate(max_rigor))
         _, source_gates = _source_gates(project, cfg)
         page_gates.extend(source_gates)
-        report_path, summary_path, _ = _write_quality_reports(project, contract, quality, page_metrics, page_gates, compliance=compliance, g1=g1, model_tournament=model_tournament, semantic_validation=semantic_validation, model_architecture=model_architecture, results_freeze=results_freeze, writer_package=writer_package, review_registry=review_registry, external_capabilities=external_capabilities)
+        report_path, summary_path, _ = _write_quality_reports(project, contract, quality, page_metrics, page_gates, compliance=compliance, g1=g1, model_tournament=model_tournament, semantic_validation=semantic_validation, model_architecture=model_architecture, results_freeze=results_freeze, writer_package=writer_package, review_registry=review_registry, external_capabilities=external_capabilities, max_rigor=max_rigor)
         release_status = _release_status(contract, page_gates)
         result = {
             "report": str(report_path),
@@ -529,6 +546,7 @@ def main(argv: list[str] | None = None) -> int:
             "writer_package": writer_package,
             "review_registry": review_registry,
             "external_capabilities": external_capabilities,
+            "max_rigor": max_rigor,
         }
         if args.json:
             print(json.dumps(result, ensure_ascii=False))
@@ -637,12 +655,14 @@ def main(argv: list[str] | None = None) -> int:
         writer_package = evaluate_writer_package(project, cfg)
         review_registry = evaluate_review_registry(project, cfg)
         external_capabilities = evaluate_capability_configuration(project)
+        max_rigor = evaluate_max_rigor(project, cfg)
         page_gates.append(_phase6_gate(writer_package, "G7-PAPER-EVIDENCE-READY-001", "paper evidence is ready"))
         page_gates.append(_phase6_gate(review_registry, "G8-ADVERSARIAL-REVIEW-001", "adversarial review is passed"))
         page_gates.append(_capability_gate(external_capabilities))
+        page_gates.append(_max_rigor_gate(max_rigor))
         page_gates.extend(source_gates)
         report_path, summary_path, _ = _write_quality_reports(
-            project, contract, quality, page_metrics, page_gates, compile_result, compliance, g1, model_tournament, semantic_validation, model_architecture, results_freeze, writer_package, review_registry, external_capabilities
+            project, contract, quality, page_metrics, page_gates, compile_result, compliance, g1, model_tournament, semantic_validation, model_architecture, results_freeze, writer_package, review_registry, external_capabilities, max_rigor
         )
         release_status = _release_status(contract, page_gates, compile_result)
         if solver["status"] == "FAILED" or analysis["status"] == "FAILED":
@@ -673,6 +693,7 @@ def main(argv: list[str] | None = None) -> int:
             "writer_package": writer_package,
             "review_registry": review_registry,
             "external_capabilities": external_capabilities,
+            "max_rigor": max_rigor,
         }
         if args.json:
             print(json.dumps(result, ensure_ascii=False))
