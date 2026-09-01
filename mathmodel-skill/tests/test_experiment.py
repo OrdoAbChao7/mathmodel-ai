@@ -59,6 +59,15 @@ class ExperimentProvenanceTests(unittest.TestCase):
         report = evaluate_experiment_provenance(self.root)
         self.assertTrue(any(item["rule"] == "G4-EXPERIMENT-HASH-001" and item["status"] == "FAIL" for item in report["checks"]))
 
+    def test_metrics_and_result_artifacts_must_be_nonempty(self):
+        data = self.valid()
+        data["experiments"][0]["metrics"] = []
+        data["experiments"][0]["result_artifacts"] = []
+        self.write(data)
+        report = evaluate_experiment_provenance(self.root)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertTrue(any(item["rule"] == "G4-EXPERIMENT-OUTPUT-001" and item["status"] == "FAIL" for item in report["checks"]))
+
 
 if __name__ == "__main__":
     unittest.main()

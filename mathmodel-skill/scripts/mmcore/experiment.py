@@ -79,7 +79,7 @@ def evaluate_experiment_provenance(project: Path, config: dict[str, Any] | None 
         path_fields_ok = True
         for field in ("metrics", "figures", "result_artifacts"):
             values = row.get(field)
-            valid = isinstance(values, list) and all(_inside(root, value) is not None and _inside(root, value).is_file() for value in values)
+            valid = isinstance(values, list) and (field == "figures" or bool(values)) and all(_inside(root, value) is not None and _inside(root, value).is_file() for value in values)
             path_fields_ok = path_fields_ok and valid
         checks.append(_check("G4-EXPERIMENT-OUTPUT-001", "PASS" if path_fields_ok else "FAIL", "experiment output artifacts resolve" if path_fields_ok else "experiment output artifact paths are missing or unsafe", id=identifier))
     status = "PASS" if checks and all(item["status"] == "PASS" for item in checks) else "FAIL"
