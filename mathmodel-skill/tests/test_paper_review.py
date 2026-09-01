@@ -11,6 +11,17 @@ if str(SCRIPTS) not in sys.path:
 from mmcore.paper_review import evaluate_review_registry, evaluate_writer_package
 
 
+REVIEW_TYPES = ["mathematical", "statistical", "evidence_consistency", "innovation", "red_team", "citation", "judge_view", "final_judge"]
+INNOVATION_ASSESSMENT = {
+    "problem_need": "addresses a concrete problem limitation",
+    "counterfactual_value": "removing the innovation worsens the stated objective",
+    "problem_origin": "derived from the problem structure",
+    "empirical_support": "supported by registered comparison evidence",
+    "non_mechanical": "not merely a mechanical model combination",
+    "evidence_refs": ["artifacts/result-registry.json", "artifacts/validation.json"],
+}
+
+
 def write_json(root, relative, value):
     path = root / relative
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -131,13 +142,15 @@ class PaperReviewTests(unittest.TestCase):
         self.assertEqual(report["status"], "FAIL")
 
     def test_review_registry_requires_all_reviewers(self):
-        types = ["mathematical", "statistical", "evidence_consistency", "red_team", "citation", "judge_view", "final_judge"]
-        write_json(self.root, "artifacts/review-registry.json", {"schema_version": 1, "reviews": [{"id": f"rev-{item}", "reviewer_id": f"person-{item}", "reviewer_type": item, "status": "COMPLETE", "independent": True, "findings": []} for item in types]})
+        types = REVIEW_TYPES
+        reviews = [{"id": f"rev-{item}", "reviewer_id": f"person-{item}", "reviewer_type": item, "status": "COMPLETE", "independent": True, "findings": []} for item in types]
+        next(item for item in reviews if item["reviewer_type"] == "innovation")["innovation_assessment"] = INNOVATION_ASSESSMENT
+        write_json(self.root, "artifacts/review-registry.json", {"schema_version": 1, "reviews": reviews})
         report = evaluate_review_registry(self.root, self.cfg)
         self.assertEqual(report["status"], "PASS", report)
 
     def test_open_critical_red_team_finding_fails_g8(self):
-        types = ["mathematical", "statistical", "evidence_consistency", "red_team", "citation", "judge_view", "final_judge"]
+        types = REVIEW_TYPES
         reviews = [{"id": f"rev-{item}", "reviewer_id": f"person-{item}", "reviewer_type": item, "status": "COMPLETE", "independent": True, "findings": []} for item in types]
         reviews[3]["findings"] = [{"id": "REV-1", "severity": "CRITICAL", "status": "OPEN"}]
         write_json(self.root, "artifacts/review-registry.json", {"schema_version": 1, "reviews": reviews})
@@ -151,26 +164,35 @@ class PaperReviewTests(unittest.TestCase):
         self.assertEqual(report["status"], "FAIL")
 
     def test_unknown_review_schema_returns_structured_failure(self):
-        types = ["mathematical", "statistical", "evidence_consistency", "red_team", "citation", "judge_view", "final_judge"]
+        types = REVIEW_TYPES
         reviews = [{"id": f"rev-{item}", "reviewer_id": f"person-{item}", "reviewer_type": item, "status": "COMPLETE", "independent": True, "findings": []} for item in types]
         write_json(self.root, "artifacts/review-registry.json", {"schema_version": 999, "reviews": reviews})
         report = evaluate_review_registry(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
 
     def test_duplicate_review_identity_returns_structured_failure(self):
-        types = ["mathematical", "statistical", "evidence_consistency", "red_team", "citation", "judge_view", "final_judge"]
+        types = REVIEW_TYPES
         reviews = [{"id": "same", "reviewer_id": "same-person", "reviewer_type": item, "status": "COMPLETE", "independent": True, "findings": []} for item in types]
         write_json(self.root, "artifacts/review-registry.json", {"schema_version": 1, "reviews": reviews})
         report = evaluate_review_registry(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
 
     def test_malformed_finding_returns_structured_failure(self):
-        types = ["mathematical", "statistical", "evidence_consistency", "red_team", "citation", "judge_view", "final_judge"]
+        types = REVIEW_TYPES
         reviews = [{"id": f"rev-{item}", "reviewer_id": f"person-{item}", "reviewer_type": item, "status": "COMPLETE", "independent": True, "findings": []} for item in types]
         reviews[3]["findings"] = [{"id": "bad", "severity": [], "status": "OPEN"}]
         write_json(self.root, "artifacts/review-registry.json", {"schema_version": 1, "reviews": reviews})
         report = evaluate_review_registry(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
+
+    def test_innovation_reviewer_requires_structured_assessment(self):
+        reviews = [{"id": f"rev-{item}", "reviewer_id": f"person-{item}", "reviewer_type": item, "status": "COMPLETE", "independent": True, "findings": []} for item in REVIEW_TYPES]
+        innovation = next(item for item in reviews if item["reviewer_type"] == "innovation")
+        innovation["innovation_assessment"] = {**INNOVATION_ASSESSMENT, "empirical_support": ""}
+        write_json(self.root, "artifacts/review-registry.json", {"schema_version": 1, "reviews": reviews})
+        report = evaluate_review_registry(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertTrue(any(check["rule"] == "G8-INNOVATION-001" for check in report["checks"]))
 
     def test_research_mode_is_not_applicable(self):
         report = evaluate_writer_package(self.root, {**self.cfg, "execution_mode": "research_autonomous"})

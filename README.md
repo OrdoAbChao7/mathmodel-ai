@@ -32,3 +32,5 @@ On this Windows workspace the example uses the bundled Python runtime path in `t
 All three modes retain the same risk-probe, leakage, validation, reproducibility, citation, AI-ledger, and human-gate requirements. The selected mode and effective limits are recorded in the G2/G3 report for auditability.
 
 New projects use configuration schema v2. Existing v1 configurations are accepted and normalized in memory without modifying the original file, preserving backward compatibility with historical fixtures and training projects.
+
+Formal G8 review also requires an independent innovation assessment backed by result/validation references; using a newer algorithm alone is not treated as innovation.
