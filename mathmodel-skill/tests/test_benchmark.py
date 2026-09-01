@@ -1,4 +1,6 @@
+import os
 import json
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -131,6 +133,26 @@ class BenchmarkTests(unittest.TestCase):
         self.assertEqual(report["baseline"]["records"], 4)
         self.assertEqual(report["candidate"]["records"], 4)
         self.assertEqual(report["promotion"]["status"], "DEFAULT")
+
+    def test_fixture_command_runner_isolates_case_side_effects(self):
+        runner = self.root / "fixture_command_runner.py"
+        runner.write_text(
+            "import json, os; from pathlib import Path; Path('side-effect.txt').write_text('sandbox-only'); print(json.dumps({'status':'PASS','control':{'provider':'x','model':'x','budget':1,'evidence':'x'},'metrics':{}}))",
+            encoding="utf-8",
+        )
+        case = self.root / "case"
+        case.mkdir()
+        command_runner = Path(__file__).resolve().parents[2] / "benchmarks" / "fixture_command_runner.py"
+        environment = os.environ.copy()
+        environment["MATHMODEL_BENCHMARK_CASE"] = json.dumps({"case_id": "isolation", "benchmark_command": [sys.executable, str(runner)]})
+        environment["MATHMODEL_BENCHMARK_VARIANT"] = "baseline"
+        completed = subprocess.run(
+            [sys.executable, str(command_runner)], cwd=case, env=environment,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", check=False,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(json.loads(completed.stdout)["status"], "PASS")
+        self.assertFalse((case / "side-effect.txt").exists())
 
     def test_ab_runner_fails_closed_on_control_mismatch(self):
         registry = load_case_registry(self.root, self.registry())
