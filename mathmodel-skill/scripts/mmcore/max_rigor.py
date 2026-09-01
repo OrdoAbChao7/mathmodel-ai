@@ -18,6 +18,11 @@ _DEFAULT_REQUIREMENTS = {
     "minimum_red_team_rounds": 2,
 }
 _DEFAULT_ATTACKS = {"alternative_split", "extreme_scenario", "bootstrap"}
+_DEFAULT_DEPTH_RECORD_FIELDS = {
+    "model_scouts": "model_scout_records",
+    "candidate_routes_reviewed": "candidate_route_records",
+    "red_team_rounds": "red_team_round_records",
+}
 
 
 def _check(rule: str, status: str, message: str, **evidence: Any) -> dict[str, Any]:
@@ -41,7 +46,15 @@ def _safe_existing_file(root: Path, value: Any) -> Path | None:
     return resolved
 
 
-def _requirements() -> tuple[dict[str, int], set[str], str]:
+def _record_count(data: dict[str, Any], field: str) -> int | None:
+    records = data.get(field)
+    if not isinstance(records, list) or not records or any(not isinstance(item, dict) or not _text(item.get("id")) for item in records):
+        return None
+    identifiers = [item["id"] for item in records]
+    return len(records) if len(identifiers) == len(set(identifiers)) else None
+
+
+def _requirements() -> tuple[dict[str, int], set[str], str, dict[str, str]]:
     path = Path(__file__).resolve().parents[2] / "profiles" / "cumcm" / "profile.yaml"
     try:
         profile = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -55,7 +68,13 @@ def _requirements() -> tuple[dict[str, int], set[str], str]:
     attacks = section.get("required_robustness_attacks", sorted(_DEFAULT_ATTACKS))
     required_attacks = {item for item in attacks if isinstance(item, str)} if isinstance(attacks, list) else set(_DEFAULT_ATTACKS)
     provider = section.get("required_external_review_provider", "ars")
-    return requirements, required_attacks or set(_DEFAULT_ATTACKS), provider if isinstance(provider, str) else "ars"
+    configured_fields = section.get("depth_record_fields", {})
+    depth_record_fields = dict(_DEFAULT_DEPTH_RECORD_FIELDS)
+    if isinstance(configured_fields, dict):
+        for logical_name, record_field in configured_fields.items():
+            if logical_name in depth_record_fields and _text(record_field):
+                depth_record_fields[logical_name] = record_field
+    return requirements, required_attacks or set(_DEFAULT_ATTACKS), provider if isinstance(provider, str) else "ars", depth_record_fields
 
 
 def evaluate_max_rigor(project: Path, config: dict[str, Any]) -> dict[str, Any]:
@@ -64,7 +83,7 @@ def evaluate_max_rigor(project: Path, config: dict[str, Any]) -> dict[str, Any]:
     if mode != _FORMAL_MAX:
         return {"status": "NOT_APPLICABLE", "mode": mode, "checks": []}
     root = Path(project).resolve()
-    requirements, required_attacks, required_provider = _requirements()
+    requirements, required_attacks, required_provider, depth_record_fields = _requirements()
     path = root / "artifacts" / "competition-max-review.json"
     checks: list[dict[str, Any]] = []
     try:
@@ -74,14 +93,14 @@ def evaluate_max_rigor(project: Path, config: dict[str, Any]) -> dict[str, Any]:
     if not supported_artifact_schema(data) or not _text(data.get("generated_by")):
         checks.append(_check("G8-MAX-SHAPE-001", "FAIL", "max-rigor artifact metadata is invalid"))
     numeric_requirements = {
-        "model_scouts": requirements["minimum_model_scouts"],
-        "candidate_routes_reviewed": requirements["minimum_candidate_routes_reviewed"],
-        "red_team_rounds": requirements["minimum_red_team_rounds"],
+        depth_record_fields["model_scouts"]: requirements["minimum_model_scouts"],
+        depth_record_fields["candidate_routes_reviewed"]: requirements["minimum_candidate_routes_reviewed"],
+        depth_record_fields["red_team_rounds"]: requirements["minimum_red_team_rounds"],
     }
     for field, minimum in numeric_requirements.items():
-        value = data.get(field)
-        ok = isinstance(value, int) and not isinstance(value, bool) and value >= minimum
-        checks.append(_check("G8-MAX-DEPTH-001", "PASS" if ok else "FAIL", f"{field} meets max-mode minimum" if ok else f"{field} is below max-mode minimum", field=field, actual=value, minimum=minimum))
+        value = _record_count(data, field)
+        ok = value is not None and value >= minimum
+        checks.append(_check("G8-MAX-DEPTH-001", "PASS" if ok else "FAIL", f"{field} meets max-mode minimum" if ok else f"{field} is missing, malformed, or below max-mode minimum", field=field, actual=value, minimum=minimum))
     attacks = data.get("robustness_attacks")
     attack_ok = isinstance(attacks, list) and required_attacks <= {item for item in attacks if isinstance(item, str)}
     checks.append(_check("G8-MAX-ROBUSTNESS-001", "PASS" if attack_ok else "FAIL", "extended robustness attacks are recorded" if attack_ok else "max mode lacks required robustness attacks", required=sorted(required_attacks), actual=attacks))

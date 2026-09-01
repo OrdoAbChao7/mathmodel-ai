@@ -29,6 +29,9 @@ class MaxRigorTests(unittest.TestCase):
         return {
             "schema_version": 1,
             "generated_by": "local_max_rigor_engine",
+            "model_scout_records": [{"id": "scout-1"}, {"id": "scout-2"}, {"id": "scout-3"}],
+            "candidate_route_records": [{"id": "route-1"}, {"id": "route-2"}, {"id": "route-3"}, {"id": "route-4"}],
+            "red_team_round_records": [{"id": "red-1"}, {"id": "red-2"}],
             "model_scouts": 3,
             "candidate_routes_reviewed": 4,
             "robustness_attacks": ["alternative_split", "extreme_scenario", "bootstrap"],
@@ -36,11 +39,22 @@ class MaxRigorTests(unittest.TestCase):
             "external_reviews": [{"provider": "ars", "status": "COMPLETE", "evidence": "artifacts/ars-review.json"}],
         }
 
+    def test_max_depth_counts_must_be_backed_by_record_arrays(self):
+        data = self.valid()
+        data["model_scout_records"] = [{"id": "scout-1"}]
+        data["candidate_route_records"] = [{"id": "route-1"}]
+        data["red_team_round_records"] = [{"id": "red-1"}]
+        self.write(data)
+        report = evaluate_max_rigor(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+        depth_checks = [check for check in report["checks"] if check["rule"] == "G8-MAX-DEPTH-001"]
+        self.assertTrue(any(check["status"] == "FAIL" for check in depth_checks))
+
     def test_max_mode_requires_all_extended_evidence(self):
         self.write(self.valid())
         report = evaluate_max_rigor(self.root, self.cfg)
         self.assertEqual(report["status"], "PASS", report)
-        self.assertEqual(report["requirements"]["red_team_rounds"], 2)
+        self.assertEqual(report["requirements"]["red_team_round_records"], 2)
 
     def test_max_mode_fails_without_ars_review(self):
         data = self.valid()
