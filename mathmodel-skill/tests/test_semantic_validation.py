@@ -148,6 +148,17 @@ class SemanticValidationTests(unittest.TestCase):
         self.assertEqual(report["status"], "FAIL")
         self.assertEqual(report["g4"]["status"], "FAIL")
 
+    def test_unknown_problem_type_returns_structured_failure(self):
+        self.install_valid()
+        report = evaluate_semantic_validation(self.root, {**self.cfg, "problem_type": "unknown"})
+        self.assertEqual(report["status"], "FAIL")
+        self.assertEqual(report["g4"]["status"], "FAIL")
+
+    def test_unknown_execution_mode_returns_structured_failure(self):
+        self.install_valid()
+        report = evaluate_semantic_validation(self.root, {**self.cfg, "execution_mode": "unknown_mode"})
+        self.assertEqual(report["status"], "FAIL")
+
     def test_hybrid_problem_type_requires_profiled_semantic_checks(self):
         self.install_valid()
         report = evaluate_semantic_validation(self.root, {**self.cfg, "problem_type": "hybrid"})

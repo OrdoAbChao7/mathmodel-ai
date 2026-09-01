@@ -161,15 +161,26 @@ def evaluate_semantic_validation(project: Path, config: dict[str, Any]) -> dict[
     profile = _profile()
     mode = config.get("execution_mode", "research_autonomous")
     formal_modes = set(profile.get("formal_modes", ("competition_assisted", "competition_max")))
+    known_modes = formal_modes | {"research_autonomous"}
     if not isinstance(mode, str):
         check = _check("G4-CONFIG-001", "FAIL", "execution_mode must be a string", actual_type=type(mode).__name__)
         return {"status": "FAIL", "mode": "INVALID", "g4": {"status": "FAIL", "checks": [check]}, "g5": {"status": "FAIL", "checks": []}}
-    if mode not in formal_modes:
-        return {"status": "NOT_APPLICABLE", "mode": mode, "g4": {"status": "NOT_APPLICABLE", "checks": []}, "g5": {"status": "NOT_APPLICABLE", "checks": []}}
+    if mode not in known_modes:
+        check = _check("G4-CONFIG-003", "FAIL", "execution_mode is not supported", execution_mode=mode)
+        return {"status": "FAIL", "mode": "INVALID", "g4": {"status": "FAIL", "checks": [check]}, "g5": {"status": "FAIL", "checks": []}}
     problem_type = config.get("problem_type")
     if not isinstance(problem_type, str) or not problem_type.strip():
         check = _check("G4-CONFIG-002", "FAIL", "problem_type must be a non-empty string", actual_type=type(problem_type).__name__)
         return {"status": "FAIL", "mode": mode, "g4": {"status": "FAIL", "checks": [check]}, "g5": {"status": "FAIL", "checks": []}}
+    validation_requirements = profile.get("validation_requirements", {})
+    known_problem_types = set(validation_requirements) if isinstance(validation_requirements, dict) else set()
+    known_problem_types.update(_DEFAULT_REQUIREMENTS)
+    known_problem_types.add("hybrid")
+    if problem_type not in known_problem_types:
+        check = _check("G4-CONFIG-004", "FAIL", "problem_type is not supported", problem_type=problem_type)
+        return {"status": "FAIL", "mode": mode, "g4": {"status": "FAIL", "checks": [check]}, "g5": {"status": "FAIL", "checks": []}}
+    if mode == "research_autonomous":
+        return {"status": "NOT_APPLICABLE", "mode": mode, "g4": {"status": "NOT_APPLICABLE", "checks": []}, "g5": {"status": "NOT_APPLICABLE", "checks": []}}
     validation_data, validation_error = _read_json(Path(project) / "artifacts" / "validation.json")
     g4_checks = []
     if validation_error:
@@ -178,7 +189,7 @@ def evaluate_semantic_validation(project: Path, config: dict[str, Any]) -> dict[
     else:
         if validation_data.get("schema_version") != 1:
             g4_checks.append(_check("G4-ARTIFACT-METADATA-001", "FAIL", "validation artifact schema_version must be 1"))
-        requirements = tuple(profile.get("validation_requirements", {}).get(problem_type, _DEFAULT_REQUIREMENTS.get(problem_type, ())))
+        requirements = tuple(validation_requirements.get(problem_type, _DEFAULT_REQUIREMENTS.get(problem_type, ())))
         validation_checks, validation_ids = _validation_checks(Path(project), validation_data, requirements)
         g4_checks.extend(validation_checks)
         raw = validation_data.get("validations")
