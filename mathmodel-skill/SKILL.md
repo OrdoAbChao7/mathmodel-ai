@@ -76,6 +76,9 @@ Read [paper-architecture.md](references/paper-architecture.md) for the section c
 | Rank alternatives or combine multiple indicators | [evaluation.md](references/evaluation.md) |
 | Classification or class-imbalance modeling | [classification.md](references/classification.md) |
 | Statistical inference or uncertainty analysis | [statistics.md](references/statistics.md) |
+| Simulation, Monte Carlo, or queueing models | [simulation.md](references/simulation.md) |
+| Mechanistic, physical, or differential-equation models | [mechanism.md](references/mechanism.md) |
+| Multi-stage or mixed-type problems | [hybrid.md](references/hybrid.md) |
 | Select a model family or document heuristic settings | [modeling-methods.md](references/modeling-methods.md) |
 | Draft the abstract or per-question paper chain | [modeling-paper.md](references/modeling-paper.md) |
 | Select CUMCM LaTeX packages, labels, or citation commands | [latex-template.md](references/latex-template.md) |
