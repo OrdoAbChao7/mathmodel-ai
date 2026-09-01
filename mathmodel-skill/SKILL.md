@@ -69,6 +69,8 @@ Define variables, units, assumptions, data lineage, estimation method, algorithm
 
 Use `build` after changing analysis, registries, figures, LaTeX, or configuration. Use `audit` after editorial or page-balance revisions. Treat a CLI failure, broken ID link, missing source, unresolved reference, failed page gate, or stale report as a blocker, not as a warning to explain away.
 
+Core JSON artifacts may use schema v1 (legacy) or v2 (current). For an explicit non-destructive preview, run `python mathmodel-skill/scripts/mathmodel.py migrate PROJECT --dry-run --json`; run it without `--dry-run` only when you intend to upgrade v1 JSON files. JSONL ledgers remain append-only and are not rewritten.
+
 ## Complete the manual review
 
 Perform manual review after machine checks pass. Inspect the rendered PDF for clipped equations, unreadable tables, misleading axes, duplicate decorative figures, empty pages, broken citations, and body sections that merely point to appendix-only reasoning. Judge whether assumptions are defensible, the model answers each question, validation challenges the conclusion, citations support their claims, and recommendations remain within the model's scope.

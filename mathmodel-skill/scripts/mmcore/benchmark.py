@@ -10,6 +10,8 @@ import subprocess
 from pathlib import Path
 from typing import Any, Callable
 
+from .schema import supported_artifact_schema
+
 
 class BenchmarkError(ValueError):
     """Raised when a benchmark registry or result violates its contract."""
@@ -83,8 +85,8 @@ def load_case_registry(project: Path, registry_path: Path | str | None = None) -
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
         raise BenchmarkError(f"invalid benchmark registry: {path}") from exc
-    if not isinstance(payload, dict) or payload.get("schema_version") != 1 or not isinstance(payload.get("cases"), list) or not payload["cases"]:
-        raise BenchmarkError("benchmark registry requires schema_version=1 and a non-empty cases array")
+    if not supported_artifact_schema(payload) or not isinstance(payload.get("cases"), list) or not payload["cases"]:
+        raise BenchmarkError("benchmark registry requires a supported schema_version and a non-empty cases array")
     seen: set[str] = set()
     cases: list[dict[str, Any]] = []
     for index, case in enumerate(payload["cases"]):

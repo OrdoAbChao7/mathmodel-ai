@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .schema import supported_artifact_schema
+
 
 _REQUIRED = ("id", "run_id", "question_id", "model_id", "code_hashes", "input_hashes", "config_hash", "seed", "environment", "started_at", "ended_at", "metrics", "figures", "result_artifacts")
 
@@ -45,7 +47,7 @@ def evaluate_experiment_provenance(project: Path, config: dict[str, Any] | None 
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         return {"status": "FAIL", "checks": [_check("G4-EXPERIMENT-EVIDENCE-001", "FAIL", "experiment-registry.json is required for formal experiments", error=str(exc))]}
     checks: list[dict[str, Any]] = []
-    if not isinstance(data, dict) or data.get("schema_version") != 1 or not _text(data.get("generated_by")):
+    if not supported_artifact_schema(data) or not _text(data.get("generated_by")):
         checks.append(_check("G4-EXPERIMENT-SHAPE-001", "FAIL", "experiment registry metadata is invalid"))
     rows = data.get("experiments") if isinstance(data, dict) else None
     if not isinstance(rows, list) or not rows:

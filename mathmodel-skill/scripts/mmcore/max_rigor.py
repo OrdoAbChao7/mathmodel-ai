@@ -8,6 +8,8 @@ from typing import Any
 
 import yaml
 
+from .schema import supported_artifact_schema
+
 
 _FORMAL_MAX = "competition_max"
 _DEFAULT_REQUIREMENTS = {
@@ -56,7 +58,7 @@ def evaluate_max_rigor(project: Path, config: dict[str, Any]) -> dict[str, Any]:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         return {"status": "FAIL", "mode": mode, "checks": [_check("G8-MAX-EVIDENCE-001", "FAIL", "competition-max-review.json is required", error=str(exc))]}
-    if not isinstance(data, dict) or data.get("schema_version") != 1 or not _text(data.get("generated_by")):
+    if not supported_artifact_schema(data) or not _text(data.get("generated_by")):
         checks.append(_check("G8-MAX-SHAPE-001", "FAIL", "max-rigor artifact metadata is invalid"))
     numeric_requirements = {
         "model_scouts": requirements["minimum_model_scouts"],

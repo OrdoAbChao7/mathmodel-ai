@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .schema import supported_artifact_schema
+
 
 _FORMAL_MODES = {"competition_assisted", "competition_max"}
 _PROBLEM_TYPES = {"forecasting", "optimization", "evaluation", "mechanism", "simulation", "hybrid"}
@@ -85,7 +87,7 @@ def evaluate_model_architecture(project: Path, config: dict[str, Any]) -> dict[s
     question_ids = {item.get("id") for item in raw_problem_questions if isinstance(item.get("id"), str) and item.get("id")}
     raw_questions = architecture.get("questions")
     architecture_questions = _items(architecture, "questions")
-    if architecture.get("schema_version") != 1 or not architecture_questions or not isinstance(raw_questions, list) or any(not isinstance(item, dict) for item in raw_questions):
+    if not supported_artifact_schema(architecture) or not architecture_questions or not isinstance(raw_questions, list) or any(not isinstance(item, dict) for item in raw_questions):
         checks.append(_check("G55-SHAPE-001", "FAIL", "model architecture must use schema_version 1 and a non-empty questions array"))
         return {"status": "FAIL", "mode": mode, "checks": checks}
     architecture_ids = [item.get("id") for item in architecture_questions]
@@ -294,7 +296,7 @@ def evaluate_results_freeze(project: Path, config: dict[str, Any]) -> dict[str, 
             stale_nodes.update({"result", "validation", "freeze", "paper_evidence", "reviews"})
         elif key == "validation_hash":
             stale_nodes.update({"validation", "freeze", "paper_evidence", "reviews"})
-    if manifest.get("status") != "CURRENT" or manifest.get("schema_version") != 1:
+    if manifest.get("status") != "CURRENT" or not supported_artifact_schema(manifest):
         stale_nodes.add("freeze")
     checks.append(_check("G6-STALE-001", "PASS" if not stale_nodes else "FAIL", "no upstream evidence is stale" if not stale_nodes else "upstream changes propagated stale state", changed_hashes=changed, stale_nodes=sorted(stale_nodes)))
     review_id = manifest.get("h3_review_id")
