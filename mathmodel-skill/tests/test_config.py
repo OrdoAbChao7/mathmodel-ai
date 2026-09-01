@@ -144,6 +144,17 @@ class ConfigTests(unittest.TestCase):
         evaluator.assert_called_once()
         self.assertEqual(json.loads(output.getvalue())["status"], "NOT_APPLICABLE")
 
+    def test_stage_commands_reuse_read_only_evaluators(self):
+        write_json(self.root / "mathmodel.json", valid_config())
+        for command in ("frame", "screen", "select", "validate", "freeze", "review", "signoff", "compliance"):
+            output = StringIO()
+            with redirect_stdout(output):
+                exit_code = main([command, str(self.root), "--json"])
+            payload = json.loads(output.getvalue())
+            self.assertEqual(payload["stage"], command)
+            self.assertIn(payload["status"], {"PASS", "FAIL", "PENDING"}, payload)
+            self.assertIn(exit_code, {0, 1})
+
     def test_authority_command_reports_local_constitution(self):
         (self.root / "CONSTITUTION.md").write_text("local authority", encoding="utf-8")
         output = StringIO()
