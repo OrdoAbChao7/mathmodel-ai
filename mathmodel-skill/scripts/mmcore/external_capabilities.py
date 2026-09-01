@@ -12,6 +12,7 @@ import yaml
 _PIN = re.compile(r"^[0-9a-f]{40}$")
 _MODES = {"ABSTRACT_INSPIRED", "EXTERNAL_ADAPTER", "REIMPLEMENTED"}
 _ADAPTER_AUTHORITY = {"xiaoma": "lazy_load", "ars": "findings_only", "automcm": "abstract_inspired", "zhnnky": "abstract_inspired"}
+_LOCAL_PROVIDERS = {"local", "local_review_system", "local_method_judge", "local_validation_engine", "local_g9"}
 
 
 def _read_yaml(path: Path) -> tuple[dict[str, Any] | None, str | None]:
@@ -61,8 +62,8 @@ def evaluate_capability_configuration(project: Path) -> dict[str, Any]:
     if len(source_ids) != len(source_map) or any(not _valid_text(item.get("id")) for item in raw_sources):
         checks.append(_check("SOURCE-ID-001", "FAIL", "source IDs must be unique non-empty strings"))
     for source in raw_sources:
-        valid = (_valid_text(source.get("id")) and _valid_text(source.get("repository")) and _valid_text(source.get("license"))
-                 and _PIN.fullmatch(source.get("pinned_commit", "")) is not None and source.get("integration_mode") in _MODES
+        valid = (_valid_text(source.get("id")) and isinstance(source.get("repository"), str) and source.get("repository").startswith("https://github.com/") and _valid_text(source.get("license"))
+                 and isinstance(source.get("pinned_commit"), str) and _PIN.fullmatch(source.get("pinned_commit", "")) is not None and isinstance(source.get("integration_mode"), str) and source.get("integration_mode") in _MODES
                  and isinstance(source.get("capabilities"), list) and all(_valid_text(item) for item in source.get("capabilities"))
                  and _valid_text(source.get("authority")) and _valid_text(source.get("attribution")))
         checks.append(_check("SOURCE-CONTRACT-001", "PASS" if valid else "FAIL", "source is pinned and attributable" if valid else "source contract is incomplete or floating", source_id=source.get("id")))
@@ -71,14 +72,14 @@ def evaluate_capability_configuration(project: Path) -> dict[str, Any]:
         checks.append(_check("CAPABILITY-ID-001", "FAIL", "capability IDs must be unique non-empty strings"))
     for capability in raw_capabilities:
         providers = capability.get("providers")
-        valid = (_valid_text(capability.get("id")) and _valid_text(capability.get("owner")) and isinstance(providers, list) and bool(providers)
+        valid = (_valid_text(capability.get("id")) and capability.get("owner") in _LOCAL_PROVIDERS and isinstance(providers, list) and bool(providers)
                  and all(_valid_text(item) for item in providers) and capability.get("external_decision_allowed") is False)
         provider_sources = [source_map.get(provider) for provider in providers if isinstance(providers, list)] if valid else []
-        if valid and any(source is None and not provider.startswith("local") for provider, source in zip(providers, provider_sources)):
+        if valid and any(source is None and provider not in _LOCAL_PROVIDERS for provider, source in zip(providers, provider_sources)):
             valid = False
         if valid and any(source is not None and capability["id"] not in source.get("capabilities", []) for source in provider_sources):
             valid = False
-        if valid and capability.get("owner") in providers and not capability.get("owner", "").startswith("local"):
+        if valid and capability.get("owner") in providers and capability.get("owner") not in _LOCAL_PROVIDERS:
             valid = False
         checks.append(_check("CAPABILITY-AUTHORITY-001", "PASS" if valid else "FAIL", "capability has local owner and linked providers" if valid else "capability authority or provider link is unsafe", capability_id=capability.get("id")))
     status = "PASS" if checks and all(item["status"] == "PASS" for item in checks) else "FAIL"

@@ -51,9 +51,28 @@ class ExternalCapabilityTests(unittest.TestCase):
         report = evaluate_capability_configuration(self.root)
         self.assertEqual(report["status"], "FAIL")
 
+    def test_malformed_source_types_fail_closed(self):
+        self.config["sources"][0]["pinned_commit"] = []
+        self.config["sources"][0]["integration_mode"] = {}
+        self.write_config()
+        report = evaluate_capability_configuration(self.root)
+        self.assertEqual(report["status"], "FAIL")
+
     def test_external_provider_cannot_be_final_decision_owner(self):
         self.config["capabilities"][0]["owner"] = "xiaoma"
         self.config["capabilities"][0]["external_decision_allowed"] = True
+        self.write_config()
+        report = evaluate_capability_configuration(self.root)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_unknown_owner_fails_closed(self):
+        self.config["capabilities"][0]["owner"] = "attacker"
+        self.write_config()
+        report = evaluate_capability_configuration(self.root)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_unregistered_local_provider_fails_closed(self):
+        self.config["capabilities"][0]["providers"] = ["local_fake"]
         self.write_config()
         report = evaluate_capability_configuration(self.root)
         self.assertEqual(report["status"], "FAIL")
