@@ -473,8 +473,12 @@ def main(argv: list[str] | None = None) -> int:
     init_parser.add_argument("--id", required=True)
     init_parser.add_argument("--title", required=True)
     init_parser.add_argument("--type", required=True, dest="problem_type")
+    init_parser.add_argument("--profile", choices=("cumcm",), default=None)
+    init_parser.add_argument("--mode", choices=("research-autonomous", "competition-assisted", "competition-max"), default="research-autonomous")
     adopt_parser = subparsers.add_parser("adopt")
     adopt_parser.add_argument("target")
+    adopt_parser.add_argument("--profile", choices=("cumcm",), default=None)
+    adopt_parser.add_argument("--mode", choices=("research-autonomous", "competition-assisted", "competition-max"), default="research-autonomous")
     inspect_parser = subparsers.add_parser("inspect")
     inspect_parser.add_argument("project")
     inspect_parser.add_argument("--json", action="store_true")
@@ -518,13 +522,21 @@ def main(argv: list[str] | None = None) -> int:
         return int(exc.code)
     if args.command == "init":
         try:
-            init_project(args.target, args.id, args.title, args.problem_type)
+            if args.profile not in (None, "cumcm"):
+                raise ConfigError(f"unsupported profile: {args.profile}")
+            init_project(args.target, args.id, args.title, args.problem_type, args.mode.replace("-", "_"))
         except ValueError as exc:
             print(f"error: {exc}", file=sys.stderr)
             return 2
         return 0
     if args.command == "adopt":
-        adopt_project(args.target)
+        try:
+            if args.profile not in (None, "cumcm"):
+                raise ConfigError(f"unsupported profile: {args.profile}")
+            adopt_project(args.target, args.mode.replace("-", "_"))
+        except (ConfigError, ValueError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
         return 0
     if args.command == "migrate":
         try:

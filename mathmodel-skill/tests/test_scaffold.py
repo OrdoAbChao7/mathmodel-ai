@@ -90,9 +90,14 @@ class ScaffoldTests(unittest.TestCase):
 
     def test_adopt_does_not_replace_existing_configuration(self):
         config = self.root / "mathmodel.json"
-        config.write_text("existing config", encoding="utf-8")
+        original = {
+            "schema_version": 2, "project_id": "existing", "title": "Existing", "contest": "CUMCM",
+            "problem_type": "hybrid", "execution_mode": "competition_assisted",
+        }
+        config.write_text(json.dumps(original), encoding="utf-8")
         adopt_project(self.root)
-        self.assertEqual(config.read_text(encoding="utf-8"), "existing config")
+        self.assertEqual(json.loads(config.read_text(encoding="utf-8")), original)
+        self.assertIn("H1_PROBLEM_UNDERSTANDING", (self.root / "CUMCM-WORKFLOW.md").read_text(encoding="utf-8"))
 
     def test_cli_dispatches_init_and_adopt(self):
         target = self.root / "project"
@@ -102,6 +107,19 @@ class ScaffoldTests(unittest.TestCase):
         )
         self.assertTrue((target / "mathmodel.json").exists())
         self.assertEqual(main(["adopt", str(target)]), 0)
+
+    def test_init_formal_mode_writes_mode_and_human_workflow_without_fake_signoffs(self):
+        target = self.root / "formal"
+        self.assertEqual(
+            main(["init", str(target), "--id", "formal-001", "--title", "Formal", "--type", "hybrid", "--profile", "cumcm", "--mode", "competition-assisted"]),
+            0,
+        )
+        config = json.loads((target / "mathmodel.json").read_text(encoding="utf-8"))
+        self.assertEqual(config["execution_mode"], "competition_assisted")
+        workflow = (target / "CUMCM-WORKFLOW.md").read_text(encoding="utf-8")
+        self.assertIn("H1_PROBLEM_UNDERSTANDING", workflow)
+        self.assertIn("BLOCKED_HUMAN_INPUT", workflow)
+        self.assertFalse((target / "artifacts" / "human-review-ledger.jsonl").exists())
 
     def test_cli_rejects_invalid_problem_type_cleanly(self):
         self.assertEqual(
