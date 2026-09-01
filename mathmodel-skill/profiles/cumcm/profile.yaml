@@ -11,3 +11,10 @@ required_human_gates:
   - H2_METHOD_SELECTION
   - H3_RESULT_VERIFICATION
   - H4_FINAL_SUBMISSION
+minimum_independent_interpretations: 2
+major_conflict_dimensions:
+  - objectives
+  - decision_variables
+  - hard_constraints
+  - outputs
+  - dependencies
