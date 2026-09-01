@@ -8,4 +8,4 @@ Run from the repository root:
 python mathmodel-skill/scripts/mathmodel.py submission benchmarks/cases/formal-submission-fixture --json
 ```
 
-The expected result is `RELEASE_STATUS=PASS`. Real competition projects must replace every fixture artifact with human-reviewed evidence.
+The expected result is `RELEASE_STATUS=PASS`. The fixture includes current source-manifest and reproducibility sidecars so the command exercises G9 provenance and hash recomputation. Real competition projects must replace every fixture artifact with human-reviewed evidence.

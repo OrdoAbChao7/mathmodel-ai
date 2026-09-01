@@ -1,0 +1,8 @@
+{
+  "files": [
+    {"path": "mathmodel.json", "sha256": "95d5809a6998e78906e7116ff72946a7c1d32981dc262f6ce19a3b791874e1f4"},
+    {"path": "solve.py", "sha256": "ecec1a873291aa6be2af6bdcbdf853a0b07cd04bc0c6a051591ef60e34d7f629"},
+    {"path": "problem/statement.txt", "sha256": "17c3a63452d0465927fc9ebc0f5ff2e7244bcd5123bab36ba4ed33d8d2262654"},
+    {"path": "data/input.csv", "sha256": "9d0a3983486f56f9b03229adb76f3f6cde7396f6a5bcf346716934a25d942c67"}
+  ]
+}

@@ -12,5 +12,7 @@
   "results_freeze": {"status": "PASS"},
   "writer_package": {"status": "PASS"},
   "review_registry": {"status": "PASS", "open_critical": []},
-  "hash_checks": [{"status": "PASS"}]
+  "hash_checks": [{"kind": "script", "path": "solve.py", "expected": "ecec1a873291aa6be2af6bdcbdf853a0b07cd04bc0c6a051591ef60e34d7f629", "status": "PASS"}],
+  "source_manifest": "build/source-manifest.json",
+  "reproducibility_summary": "build/reproducibility-summary.json"
 }
