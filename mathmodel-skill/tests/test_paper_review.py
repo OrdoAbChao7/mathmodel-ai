@@ -88,6 +88,14 @@ class PaperReviewTests(unittest.TestCase):
         report = evaluate_writer_package(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
 
+    def test_duplicate_citation_id_fails_g7(self):
+        self.install_writer_package()
+        package = json.loads((self.root / "artifacts/writer-package.json").read_text(encoding="utf-8"))
+        package["verified_citations"].append(dict(package["verified_citations"][0]))
+        write_json(self.root, "artifacts/writer-package.json", package)
+        report = evaluate_writer_package(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
     def test_empty_abstract_text_fails_g7(self):
         self.install_writer_package()
         package = json.loads((self.root / "artifacts/writer-package.json").read_text(encoding="utf-8"))

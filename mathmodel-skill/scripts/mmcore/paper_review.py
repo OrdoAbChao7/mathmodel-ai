@@ -120,7 +120,9 @@ def evaluate_writer_package(project: Path, config: dict[str, Any]) -> dict[str, 
     figure_pass = figures_ok and figure_bindings_ok and figure_ids == set(figure_map) and len(figure_ids) == len(figures) and all(isinstance(item.get("source"), str) and item.get("source") == canonical_files.get(item.get("figure_id")) and _safe_path(root, item.get("source")) is not None for item in figure_bindings)
     checks.append(_check("G7-FIGURE-001", "PASS" if figure_pass else "FAIL", "all figures resolve to canonical sources" if figure_pass else "figure evidence binding is incomplete"))
     citations = package.get("verified_citations")
-    citation_pass = isinstance(citations, list) and bool(citations) and all(isinstance(item, dict) and isinstance(item.get("id"), str) and item.get("id").strip() and item.get("verified") is True and isinstance(item.get("source"), str) and item.get("source").strip() and _safe_path(root, item.get("evidence_source")) is not None for item in citations)
+    citation_ids = [item.get("id") for item in citations] if isinstance(citations, list) else []
+    citation_pass = (isinstance(citations, list) and bool(citations) and _unique_text(citation_ids)
+                     and all(isinstance(item, dict) and isinstance(item.get("id"), str) and item.get("id").strip() and item.get("verified") is True and isinstance(item.get("source"), str) and item.get("source").strip() and _safe_path(root, item.get("evidence_source")) is not None for item in citations))
     checks.append(_check("G7-CITATION-001", "PASS" if citation_pass else "FAIL", "citations are verified" if citation_pass else "verified citations are missing or invalid"))
     candidates, candidates_ok = _items(package, "abstract_candidates")
     candidate_ids = {item.get("id") for item in candidates if isinstance(item.get("id"), str)}
