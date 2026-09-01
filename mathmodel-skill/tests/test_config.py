@@ -86,6 +86,14 @@ class ConfigTests(unittest.TestCase):
         orchestrator.assert_called_once()
         self.assertEqual(json.loads(output.getvalue())["status"], "PASS")
 
+    def test_benchmark_command_routes_to_harness_and_writes_report(self):
+        write_json(self.root / "mathmodel.json", valid_config())
+        output = StringIO()
+        report = {"status": "PASS", "promotion": {"status": "OPTIONAL"}}
+        with patch("mathmodel.load_case_registry", return_value={"schema_version": 1, "cases": []}), patch("mathmodel.run_configured_benchmark", return_value=report), patch("mathmodel.write_benchmark_report", return_value=str(self.root / "report.json")), redirect_stdout(output):
+            self.assertEqual(main(["benchmark", str(self.root), "--json"]), 0)
+        self.assertEqual(json.loads(output.getvalue())["report_path"], str(self.root / "report.json"))
+
     def test_authority_command_reports_local_constitution(self):
         (self.root / "CONSTITUTION.md").write_text("local authority", encoding="utf-8")
         output = StringIO()
