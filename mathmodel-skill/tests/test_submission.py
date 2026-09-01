@@ -24,6 +24,10 @@ class SubmissionTests(unittest.TestCase):
         (self.root / "artifacts").mkdir()
         (self.root / "artifacts" / "submission-manifest.json").write_text(json.dumps({"supporting_materials": ["solve.py"], "source_programs": ["solve.py"]}), encoding="utf-8")
         (self.root / "solve.py").write_text("print('fixture')", encoding="utf-8")
+        (self.root / "mathmodel.json").write_text('{"schema_version":2}', encoding="utf-8")
+        entries = [{"path": "mathmodel.json", "sha256": hashlib.sha256((self.root / "mathmodel.json").read_bytes()).hexdigest()}, {"path": "solve.py", "sha256": hashlib.sha256((self.root / "solve.py").read_bytes()).hexdigest()}]
+        (self.root / "build" / "source-manifest.json").write_text(json.dumps({"files": entries}), encoding="utf-8")
+        (self.root / "build" / "reproducibility-summary.json").write_text(json.dumps({"config_sha256": entries[0]["sha256"]}), encoding="utf-8")
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -47,6 +51,8 @@ class SubmissionTests(unittest.TestCase):
             "writer_package": {"status": "PASS"},
             "review_registry": {"status": "PASS", "open_critical": []},
             "hash_checks": [{"kind": "script", "path": "solve.py", "expected": hashlib.sha256((self.root / "solve.py").read_bytes()).hexdigest(), "status": "PASS"}],
+            "source_manifest": str(self.root / "build" / "source-manifest.json"),
+            "reproducibility_summary": str(self.root / "build" / "reproducibility-summary.json"),
         }
 
     def test_formal_submission_passes_only_with_complete_evidence(self):
@@ -81,6 +87,13 @@ class SubmissionTests(unittest.TestCase):
         result = evaluate_submission(self.root, self.config(), report)
         self.assertEqual(result["status"], "FAIL")
         self.assertTrue(any(item["rule"] == "G9-HASH-001" for item in result["checks"]))
+
+    def test_stale_report_provenance_blocks_submission(self):
+        report = self.report()
+        (self.root / "solve.py").write_text("print('changed')", encoding="utf-8")
+        result = evaluate_submission(self.root, self.config(), report)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertTrue(any(item["rule"] == "G9-PROVENANCE-001" for item in result["checks"]))
 
     def test_research_mode_is_not_applicable(self):
         result = evaluate_submission(self.root, self.config("research_autonomous"), self.report())
