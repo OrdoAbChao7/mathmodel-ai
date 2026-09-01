@@ -71,6 +71,18 @@ class ExternalCapabilityTests(unittest.TestCase):
         report = evaluate_capability_configuration(self.root)
         self.assertEqual(report["status"], "FAIL")
 
+    def test_malformed_owner_type_fails_closed(self):
+        self.config["capabilities"][0]["owner"] = []
+        self.write_config()
+        report = evaluate_capability_configuration(self.root)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_malformed_github_repository_url_fails_closed(self):
+        self.config["sources"][0]["repository"] = "https://github.com/"
+        self.write_config()
+        report = evaluate_capability_configuration(self.root)
+        self.assertEqual(report["status"], "FAIL")
+
     def test_unregistered_local_provider_fails_closed(self):
         self.config["capabilities"][0]["providers"] = ["local_fake"]
         self.write_config()
