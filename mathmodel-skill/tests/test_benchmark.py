@@ -15,6 +15,7 @@ from mmcore.benchmark import (
     load_case_registry,
     promotion_decision,
     run_ab_benchmark,
+    run_configured_benchmark,
     write_benchmark_report,
 )
 
@@ -94,6 +95,25 @@ class BenchmarkTests(unittest.TestCase):
         self.assertEqual(report["promotion"]["status"], "DEFAULT")
         self.assertGreater(report["comparison"]["problem_interpretation_accuracy"]["delta"], 0)
         self.assertEqual(report["controls"]["repeats"], 2)
+
+    def test_configured_benchmark_executes_declared_commands(self):
+        baseline_script = self.root / "baseline.py"
+        candidate_script = self.root / "candidate.py"
+        baseline_script.write_text(
+            "import json; print(json.dumps({\"status\": \"PASS\", \"control\": {\"provider\": \"cmd\", \"model\": \"v1\", \"budget\": 10, \"evidence\": \"command\"}, \"metrics\": {\"problem_interpretation_accuracy\": 0.5, \"candidate_diversity\": 0.4, \"model_appropriateness\": 0.5, \"baseline_quality\": 0.5, \"validation_completeness\": 0.5, \"unsupported_claim_count\": 0, \"critical_reviewer_findings\": 0, \"data_leakage_incidents\": 0, \"reproducibility_failures\": 0, \"cross_question_inconsistencies\": 0, \"citation_errors\": 0, \"paper_result_mismatch\": 0, \"judge_view_clarity\": 0.5, \"runtime\": 1, \"token_context_cost\": 10, \"human_intervention_count\": 0}}))",
+            encoding="utf-8",
+        )
+        candidate_script.write_text(
+            baseline_script.read_text(encoding="utf-8").replace("0.5", "0.8").replace("0.4", "0.7"),
+            encoding="utf-8",
+        )
+        config = {"benchmark": {"baseline_command": [sys.executable, str(baseline_script)], "candidate_command": [sys.executable, str(candidate_script)], "timeout_seconds": 30}}
+        registry = load_case_registry(self.root, self.registry())
+        report = run_configured_benchmark(self.root, config, registry, repeats=2)
+        self.assertEqual(report["status"], "PASS", report)
+        self.assertEqual(report["baseline"]["records"], 4)
+        self.assertEqual(report["candidate"]["records"], 4)
+        self.assertEqual(report["promotion"]["status"], "DEFAULT")
 
     def test_ab_runner_fails_closed_on_control_mismatch(self):
         registry = load_case_registry(self.root, self.registry())
