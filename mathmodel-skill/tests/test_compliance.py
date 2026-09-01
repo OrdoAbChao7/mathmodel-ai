@@ -41,6 +41,8 @@ class ComplianceTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         self.cfg = {"contest": "CUMCM", "execution_mode": "competition_assisted"}
+        (self.root / "artifacts").mkdir()
+        (self.root / "artifacts" / "problem-map.json").write_text("{}", encoding="utf-8")
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -72,6 +74,15 @@ class ComplianceTests(unittest.TestCase):
         write_jsonl(self.root / "artifacts" / "human-review-ledger.jsonl", human)
         report = evaluate_compliance(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
+
+    def test_human_review_rejects_missing_or_unsafe_reviewed_artifacts(self):
+        ai, human = valid_rows()
+        human[0]["reviewed_artifacts"] = ["artifacts/does-not-exist.json"]
+        write_jsonl(self.root / "artifacts" / "ai-usage-ledger.jsonl", [ai])
+        write_jsonl(self.root / "artifacts" / "human-review-ledger.jsonl", human)
+        report = evaluate_compliance(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+        self.assertTrue(any(check["rule"] == "G0-HUMAN-INTEGRITY-001" for check in report["checks"]))
 
     def test_research_mode_is_not_applicable(self):
         report = evaluate_compliance(self.root, {"contest": "CUMCM", "execution_mode": "research_autonomous"})

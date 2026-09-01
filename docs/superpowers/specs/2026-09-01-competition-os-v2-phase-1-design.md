@@ -16,6 +16,8 @@
 
 The compliance evaluator returns structured checks and a status. Formal mode fails when any ledger is missing, malformed, incomplete, stale, or contains an unapproved H1–H4 gate. Research mode reports the gates as not applicable and preserves legacy build behavior. Package consumes the same report and never recomputes a weaker interpretation.
 
+Each formal human record must also reference a non-empty set of existing project-relative artifacts. This prevents a signoff from claiming review of nonexistent files or from using absolute/path-traversal references; invalid references produce a blocking integrity check.
+
 ## Non-goals
 
 Do not implement model tournaments, freeze manifests, falsification, adapters, benchmark harnesses, or the unified orchestrator in Phase 1.

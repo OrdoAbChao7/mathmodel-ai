@@ -99,7 +99,26 @@ def _ai_checks(rows: list[dict[str, Any]], errors: list[str], patterns: list[str
     return checks
 
 
-def _human_checks(rows: list[dict[str, Any]], errors: list[str], gates: tuple[str, ...], max_age_days: int) -> tuple[list[dict[str, Any]], list[str]]:
+def _reviewed_artifacts(project: Path, values: Any) -> tuple[bool, list[str]]:
+    if not isinstance(values, list) or not values:
+        return False, ["reviewed_artifacts must be a non-empty array"]
+    root = Path(project).resolve()
+    invalid: list[str] = []
+    for value in values:
+        if not isinstance(value, str) or not value.strip():
+            invalid.append(str(value))
+            continue
+        candidate = Path(value)
+        if candidate.is_absolute():
+            invalid.append(value)
+            continue
+        resolved = (root / candidate).resolve()
+        if (resolved != root and root not in resolved.parents) or not resolved.is_file():
+            invalid.append(value)
+    return not invalid, invalid
+
+
+def _human_checks(project: Path, rows: list[dict[str, Any]], errors: list[str], gates: tuple[str, ...], max_age_days: int) -> tuple[list[dict[str, Any]], list[str]]:
     checks: list[dict[str, Any]] = []
     seen: set[str] = set()
     for row in rows:
@@ -109,13 +128,14 @@ def _human_checks(rows: list[dict[str, Any]], errors: list[str], gates: tuple[st
             checks.append(_check("G0-HUMAN-SHAPE-001", "FAIL", "human review record is missing required fields", id=row.get("id"), missing=missing))
             continue
         seen.add(gate)
+        artifacts_ok, invalid_artifacts = _reviewed_artifacts(project, row["reviewed_artifacts"])
         valid = (
-            gate in gates and isinstance(row["reviewed_artifacts"], list) and bool(row["reviewed_artifacts"])
+            gate in gates and artifacts_ok
             and _text(row["reviewer_name"]) and _text(row["reviewer_role"]) and _text(row["evidence_notes"])
             and row["decision"] == "APPROVED" and _timestamp_ok(row["timestamp"], max_age_days)
         )
         if not valid:
-            checks.append(_check("G0-HUMAN-INTEGRITY-001", "FAIL", "human review record is not an accepted current signoff", id=row.get("id"), gate=gate))
+            checks.append(_check("G0-HUMAN-INTEGRITY-001", "FAIL", "human review record is not an accepted current signoff", id=row.get("id"), gate=gate, invalid_reviewed_artifacts=invalid_artifacts))
     missing_gates = sorted(set(gates) - seen)
     if errors:
         checks.append(_check("G0-HUMAN-JSONL-001", "FAIL", "human review ledger has malformed records", errors=errors))
@@ -144,7 +164,7 @@ def evaluate_compliance(project: Path, config: dict[str, Any]) -> dict[str, Any]
     ai_rows, ai_errors = _read_jsonl(Path(project) / "artifacts" / "ai-usage-ledger.jsonl")
     human_rows, human_errors = _read_jsonl(Path(project) / "artifacts" / "human-review-ledger.jsonl")
     checks = _ai_checks(ai_rows, ai_errors, patterns if isinstance(patterns, list) else [])
-    human_checks, missing = _human_checks(human_rows, human_errors, gates, max_age)
+    human_checks, missing = _human_checks(Path(project), human_rows, human_errors, gates, max_age)
     checks.extend(human_checks)
     status = "PASS" if checks and all(check["status"] == "PASS" for check in checks) else "FAIL"
     return {"status": status, "mode": mode, "profile": profile.get("profile_id"), "rule_version": profile.get("rule_version"), "required_human_gates": list(gates), "missing_human_gates": missing, "checks": checks}
@@ -174,7 +194,7 @@ def evaluate_human_checkpoints(project: Path, config: dict[str, Any], required_g
         ai_rules = {}
     max_age = int(ai_rules.get("max_review_age_days", 30))
     human_rows, human_errors = _read_jsonl(Path(project) / "artifacts" / "human-review-ledger.jsonl")
-    checks, missing = _human_checks(human_rows, human_errors, required_gates, max_age)
+    checks, missing = _human_checks(Path(project), human_rows, human_errors, required_gates, max_age)
     failed = [check for check in checks if check.get("status") == "FAIL"]
     return {
         "status": "PASS" if not missing and not failed else "BLOCKED_HUMAN_INPUT",

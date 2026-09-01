@@ -90,6 +90,7 @@ class OrchestrationTests(unittest.TestCase):
     def test_formal_pipeline_stops_at_audit_until_h3_is_signed(self):
         ledger = self.root / "artifacts" / "human-review-ledger.jsonl"
         ledger.parent.mkdir()
+        (self.root / "artifacts" / "evidence.json").write_text("{}", encoding="utf-8")
         now = self.now.isoformat()
         ledger.write_text("\n".join(json.dumps({
             "id": gate.lower(), "gate": gate, "reviewed_artifacts": ["artifacts/evidence.json"],
