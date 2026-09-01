@@ -12,6 +12,7 @@ from mmcore.authority import accept_external_status, load_json, validate_registr
 from mmcore.config import ConfigError, load_config
 from mmcore.compliance import evaluate_compliance
 from mmcore.interpretation import evaluate_g1
+from mmcore.model_tournament import evaluate_model_tournament
 from mmcore.contracts import REQUIRED_ARTIFACTS, validate_artifacts
 from mmcore.manifest import inventory_project, new_run, update_stage, sha256_file
 from mmcore.latex import compile_latex, find_latex_placeholders
@@ -31,6 +32,7 @@ def _write_quality_reports(
     compile_result: dict | None = None,
     compliance: dict | None = None,
     g1: dict | None = None,
+    model_tournament: dict | None = None,
 ) -> tuple[Path, Path, dict]:
     build = project / "build"
     build.mkdir(parents=True, exist_ok=True)
@@ -44,6 +46,7 @@ def _write_quality_reports(
         "page_gates": page_gates,
         "compliance": compliance or {"status": "NOT_APPLICABLE", "mode": "research_autonomous", "checks": []},
         "g1": g1 or {"status": "NOT_APPLICABLE", "gate": "G1_PROBLEM_UNDERSTANDING_LOCKED", "checks": []},
+        "model_tournament": model_tournament or {"status": "NOT_APPLICABLE", "g2": {"status": "NOT_APPLICABLE", "checks": []}, "g3": {"status": "NOT_APPLICABLE", "checks": []}},
     }
     # Persist the evidence objects consumed by the strict release packager.
     # They are generated from the same contract and inventory used for this
@@ -121,6 +124,7 @@ def _write_quality_reports(
         f"- Page gate failures: {sum(1 for gate in page_gates if gate['severity'] == 'FAIL' and gate['status'] == 'FAIL')}",
         f"- CUMCM compliance: {report['compliance']['status']}",
         f"- G1 interpretation: {report['g1']['status']}",
+        f"- G2/G3 model tournament: {report['model_tournament']['status']}",
         "",
         "## Dimensions",
         "",
@@ -161,6 +165,17 @@ def _g1_gate(g1: dict) -> dict:
             "problem interpretation gate is not applicable for research mode" if status == "NOT_APPLICABLE" else "problem interpretation is not locked"
         ),
         "evidence": {"status": status, "gate": g1.get("gate"), "conflicts": g1.get("conflicts", []), "missing_artifacts": g1.get("missing_artifacts", [])},
+    }
+
+
+def _model_gate(model_tournament: dict, key: str, rule: str, title: str) -> dict:
+    status = model_tournament.get(key, {}).get("status") if isinstance(model_tournament.get(key), dict) else None
+    return {
+        "rule": rule,
+        "severity": "FAIL",
+        "status": "PASS" if status in {"PASS", "NOT_APPLICABLE"} else "FAIL",
+        "message": title if status == "PASS" else (f"{title} is not applicable for research mode" if status == "NOT_APPLICABLE" else f"{title} is not satisfied"),
+        "evidence": {"status": status, "checks": model_tournament.get(key, {}).get("checks", []) if isinstance(model_tournament.get(key), dict) else []},
     }
 
 
@@ -395,9 +410,12 @@ def main(argv: list[str] | None = None) -> int:
         page_gates.append(_compliance_gate(compliance))
         g1 = evaluate_g1(project, cfg)
         page_gates.append(_g1_gate(g1))
+        model_tournament = evaluate_model_tournament(project, cfg)
+        page_gates.append(_model_gate(model_tournament, "g2", "G2-MODEL-SEARCH-001", "model search is complete"))
+        page_gates.append(_model_gate(model_tournament, "g3", "G3-MODEL-SELECTION-001", "model selection is justified"))
         _, source_gates = _source_gates(project, cfg)
         page_gates.extend(source_gates)
-        report_path, summary_path, _ = _write_quality_reports(project, contract, quality, page_metrics, page_gates, compliance=compliance, g1=g1)
+        report_path, summary_path, _ = _write_quality_reports(project, contract, quality, page_metrics, page_gates, compliance=compliance, g1=g1, model_tournament=model_tournament)
         release_status = _release_status(contract, page_gates)
         result = {
             "report": str(report_path),
@@ -409,6 +427,7 @@ def main(argv: list[str] | None = None) -> int:
             "page_gates": page_gates,
             "compliance": compliance,
             "g1": g1,
+            "model_tournament": model_tournament,
         }
         if args.json:
             print(json.dumps(result, ensure_ascii=False))
@@ -504,9 +523,12 @@ def main(argv: list[str] | None = None) -> int:
         page_gates.append(_compliance_gate(compliance))
         g1 = evaluate_g1(project, cfg)
         page_gates.append(_g1_gate(g1))
+        model_tournament = evaluate_model_tournament(project, cfg)
+        page_gates.append(_model_gate(model_tournament, "g2", "G2-MODEL-SEARCH-001", "model search is complete"))
+        page_gates.append(_model_gate(model_tournament, "g3", "G3-MODEL-SELECTION-001", "model selection is justified"))
         page_gates.extend(source_gates)
         report_path, summary_path, _ = _write_quality_reports(
-            project, contract, quality, page_metrics, page_gates, compile_result, compliance, g1
+            project, contract, quality, page_metrics, page_gates, compile_result, compliance, g1, model_tournament
         )
         release_status = _release_status(contract, page_gates, compile_result)
         if solver["status"] == "FAILED" or analysis["status"] == "FAILED":
@@ -530,6 +552,7 @@ def main(argv: list[str] | None = None) -> int:
             "page_gates": page_gates,
             "compliance": compliance,
             "g1": g1,
+            "model_tournament": model_tournament,
         }
         if args.json:
             print(json.dumps(result, ensure_ascii=False))

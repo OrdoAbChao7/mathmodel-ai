@@ -18,3 +18,20 @@ major_conflict_dimensions:
   - hard_constraints
   - outputs
   - dependencies
+model_tournament:
+  minimum_total_candidates: 4
+  minimum_non_baseline_routes: 3
+  maximum_non_baseline_routes: 5
+  risk_fields:
+    - assumption_fit
+    - data_sufficiency
+    - data_quality
+    - implementation_feasibility
+    - solver_availability
+    - runtime_feasibility
+    - parameter_identifiability
+    - output_degeneracy
+    - leakage_risk
+    - sensitivity_risk
+    - validation_feasibility
+    - baseline_plausibility
