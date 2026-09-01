@@ -285,6 +285,9 @@ def evaluate_model_tournament(project: Path, config: dict[str, Any]) -> dict[str
     """Evaluate G2 and G3; formal modes fail closed, research mode is N/A."""
     profile = _profile()
     mode = config.get("execution_mode", "research_autonomous")
+    if not isinstance(mode, str):
+        check = _check("G2-CONFIG-001", "FAIL", "execution_mode must be a string", actual_type=type(mode).__name__)
+        return {"status": "FAIL", "mode": "INVALID", "g2": {"status": "FAIL", "checks": [check]}, "g3": {"status": "FAIL", "checks": [_check("G3-CONFIG-001", "FAIL", "invalid execution_mode prevents model selection")]}}
     if mode not in set(profile.get("formal_modes", ("competition_assisted", "competition_max"))):
         return {"status": "NOT_APPLICABLE", "mode": mode, "g2": {"status": "NOT_APPLICABLE", "checks": []}, "g3": {"status": "NOT_APPLICABLE", "checks": []}}
     g2_checks, candidates = _g2_checks(Path(project), profile)

@@ -216,6 +216,10 @@ class ModelTournamentTests(unittest.TestCase):
         report = evaluate_model_tournament(self.root, {"contest": "CUMCM", "execution_mode": "research_autonomous"})
         self.assertEqual(report["status"], "NOT_APPLICABLE")
 
+    def test_malformed_execution_mode_returns_structured_failure(self):
+        report = evaluate_model_tournament(self.root, {"contest": "CUMCM", "execution_mode": []})
+        self.assertEqual(report["status"], "FAIL")
+
 
 if __name__ == "__main__":
     unittest.main()
