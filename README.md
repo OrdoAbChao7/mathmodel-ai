@@ -9,6 +9,7 @@ Supported problem profiles are `forecasting`, `optimization`, `evaluation`, `mec
 ## Quick start
 
 ```text
+python -m pip install -r requirements.txt
 python mathmodel-skill/scripts/mathmodel.py init <project> --id <id> --title <title> --type optimization
 python mathmodel-skill/scripts/mathmodel.py inspect <project> --json
 python mathmodel-skill/scripts/mathmodel.py build <project> --json
@@ -33,7 +34,7 @@ The `--profile cumcm` and `--mode` options are per-run overrides. They never rew
 
 `init` and `adopt` accept the same profile/mode selection for new project metadata and create `CUMCM-WORKFLOW.md`. Existing files and existing configuration are preserved; no human-review ledger is synthesized by scaffolding.
 
-Formal human-review records are also evidence-bound: every `reviewed_artifacts` path must be a project-relative, existing file. Absolute paths, path traversal, missing files, stale timestamps, and rejected decisions cannot satisfy a checkpoint.
+Formal human-review records are also evidence-bound: every `reviewed_artifacts` path must be a project-relative, existing file, and each H1–H4 record must include a substantive `human_reasoning_summary` plus a non-empty `verified_points` list. Absolute paths, path traversal, missing files, stale timestamps, bare approvals, and rejected decisions cannot satisfy a checkpoint.
 
 AI-use records are evidence-bound in the same way: every `output_artifacts` entry must point to an existing project-local file, and `accepted`, `human_modified`, and `human_verified` must be real Boolean fields. This prevents a ledger from claiming review of an artifact that was never produced.
 
