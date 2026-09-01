@@ -415,7 +415,7 @@ def main(argv: list[str] | None = None) -> int:
         page_gates.append(_model_gate(model_tournament, "g3", "G3-MODEL-SELECTION-001", "model selection is justified"))
         _, source_gates = _source_gates(project, cfg)
         page_gates.extend(source_gates)
-        report_path, summary_path, _ = _write_quality_reports(project, contract, quality, page_metrics, page_gates, compliance=compliance, g1=g1)
+        report_path, summary_path, _ = _write_quality_reports(project, contract, quality, page_metrics, page_gates, compliance=compliance, g1=g1, model_tournament=model_tournament)
         release_status = _release_status(contract, page_gates)
         result = {
             "report": str(report_path),

@@ -126,7 +126,7 @@ def _load_cards(project: Path, candidates: list[dict[str, Any]]) -> list[dict[st
         missing = [field for field in _CARD_REQUIRED if field not in item]
         list_fields = _CARD_REQUIRED[2:6] + ("simpler_alternatives",)
         text_fields = ("family", "complexity_cost", "interpretability")
-        if missing or any(not isinstance(item[field], list) for field in list_fields) or any(not _text(item.get(field)) for field in text_fields):
+        if missing or any(not isinstance(item[field], list) or any(not isinstance(value, str) or not value.strip() for value in item[field]) for field in list_fields) or any(not _text(item.get(field)) for field in text_fields):
             checks.append(_check("G2-METHOD-CARD-SHAPE-001", "FAIL", "method-card record is incomplete", id=identifier, missing=missing))
             continue
         cards[identifier] = item
@@ -253,6 +253,8 @@ def _complexity_checks(candidates: list[dict[str, Any]]) -> list[dict[str, Any]]
 
 def _h2_check(project: Path) -> dict[str, Any]:
     rows, errors = _read_jsonl(project / "artifacts" / "human-review-ledger.jsonl")
+    if errors:
+        return _check("G3-H2-LINK-001", "FAIL", "H2 ledger contains malformed records", ledger_errors=errors)
     for row in rows:
         reviewed = row.get("reviewed_artifacts")
         if row.get("gate") == "H2_METHOD_SELECTION" and row.get("decision") == "APPROVED" and isinstance(reviewed, list) and _H2_ARTIFACTS <= {item.replace("\\", "/") for item in reviewed if isinstance(item, str)}:

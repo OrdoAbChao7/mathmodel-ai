@@ -146,6 +146,21 @@ class ModelTournamentTests(unittest.TestCase):
         self.assertEqual(report["g3"]["status"], "FAIL")
         self.assertTrue(any(check["rule"] == "G3-H2-LINK-001" for check in report["g3"]["checks"]))
 
+    def test_method_card_list_members_must_be_strings(self):
+        self.install_valid()
+        cards = json.loads((self.root / "artifacts/method-cards.json").read_text(encoding="utf-8"))
+        cards["cards"][0]["suitable_when"] = [7]
+        write_json(self.root, "artifacts/method-cards.json", cards)
+        report = evaluate_model_tournament(self.root, self.cfg)
+        self.assertEqual(report["g2"]["status"], "FAIL")
+
+    def test_malformed_h2_row_cannot_be_hidden_by_valid_row(self):
+        self.install_valid()
+        with (self.root / "artifacts/human-review-ledger.jsonl").open("a", encoding="utf-8") as stream:
+            stream.write("not-json\n")
+        report = evaluate_model_tournament(self.root, self.cfg)
+        self.assertEqual(report["g3"]["status"], "FAIL")
+
     def test_multiple_selected_candidates_fail_g3(self):
         self.install_valid()
         with (self.root / "artifacts/decision-ledger.jsonl").open("a", encoding="utf-8") as stream:

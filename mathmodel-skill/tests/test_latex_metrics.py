@@ -392,6 +392,21 @@ class LatexMetricsTests(unittest.TestCase):
         self.assertEqual(payload["model_tournament"]["status"], "FAIL")
         self.assertTrue(any(gate["rule"] == "G2-MODEL-SEARCH-001" and gate["status"] == "FAIL" for gate in payload["page_gates"]))
         self.assertTrue(any(gate["rule"] == "G3-MODEL-SELECTION-001" and gate["status"] == "FAIL" for gate in payload["page_gates"]))
+        report = json.loads((self.root / "build" / "quality-report.json").read_text(encoding="utf-8"))
+        self.assertEqual(report["model_tournament"]["status"], "FAIL")
+
+    def test_formal_build_persists_model_tournament_report(self):
+        write_complete_audit_project(self.root)
+        config = json.loads((self.root / "mathmodel.json").read_text(encoding="utf-8"))
+        config["execution_mode"] = "competition_assisted"
+        (self.root / "mathmodel.json").write_text(json.dumps(config), encoding="utf-8")
+        output = StringIO()
+        with patch("mathmodel.compile_latex", return_value={"status": "FAILED", "errors": [], "pdf": "", "aux": ""}), redirect_stdout(output):
+            exit_code = main(["build", str(self.root), "--json"])
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 1, payload)
+        report = json.loads((self.root / "build" / "quality-report.json").read_text(encoding="utf-8"))
+        self.assertEqual(report["model_tournament"]["status"], "FAIL")
 
     @unittest.skipUnless(os.name == "nt", "fake .cmd engine is a Windows integration test")
     def test_compile_runs_fake_engine_twice_and_preserves_logs(self):
