@@ -11,6 +11,10 @@ class ConfigError(ValueError):
     """Raised when a project configuration does not satisfy its contract."""
 
 
+CURRENT_CONFIG_SCHEMA_VERSION = 2
+LEGACY_CONFIG_SCHEMA_VERSIONS = {1}
+
+
 _PROBLEM_TYPES = {
     "forecasting",
     "optimization",
@@ -87,8 +91,14 @@ def load_config(project: Path) -> dict[str, Any]:
     missing = sorted(_REQUIRED_TOP_LEVEL - config.keys())
     if missing:
         raise ConfigError(f"missing required keys: {', '.join(missing)}")
-    if config["schema_version"] != 1:
-        raise ConfigError("schema_version must be 1")
+    schema_version = config.get("schema_version")
+    if isinstance(schema_version, bool) or not isinstance(schema_version, int) or schema_version not in ({CURRENT_CONFIG_SCHEMA_VERSION} | LEGACY_CONFIG_SCHEMA_VERSIONS):
+        raise ConfigError("schema_version must be 1 (legacy) or 2")
+    # Keep legacy files immutable on disk while exposing one current in-memory
+    # contract to every downstream stage.
+    if schema_version in LEGACY_CONFIG_SCHEMA_VERSIONS:
+        config = dict(config)
+        config["schema_version"] = CURRENT_CONFIG_SCHEMA_VERSION
     for field in ("project_id", "title", "contest"):
         _require_string(config[field], field)
     if config["problem_type"] not in _PROBLEM_TYPES:

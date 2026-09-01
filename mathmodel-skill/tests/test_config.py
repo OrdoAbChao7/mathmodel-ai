@@ -56,6 +56,27 @@ class ConfigTests(unittest.TestCase):
         write_json(self.root / "mathmodel.json", valid_config())
         cfg = load_config(self.root)
         self.assertEqual(cfg["problem_type"], "optimization")
+        self.assertEqual(cfg["schema_version"], 2)
+
+    def test_load_config_accepts_native_v2_contract(self):
+        cfg = valid_config()
+        cfg["schema_version"] = 2
+        write_json(self.root / "mathmodel.json", cfg)
+        self.assertEqual(load_config(self.root)["schema_version"], 2)
+
+    def test_load_config_rejects_unknown_schema_version(self):
+        cfg = valid_config()
+        cfg["schema_version"] = 999
+        write_json(self.root / "mathmodel.json", cfg)
+        with self.assertRaises(ConfigError):
+            load_config(self.root)
+
+    def test_load_config_rejects_non_integer_schema_version(self):
+        cfg = valid_config()
+        cfg["schema_version"] = []
+        write_json(self.root / "mathmodel.json", cfg)
+        with self.assertRaises(ConfigError):
+            load_config(self.root)
 
     def test_rejects_path_escape(self):
         with self.assertRaises(ConfigError):

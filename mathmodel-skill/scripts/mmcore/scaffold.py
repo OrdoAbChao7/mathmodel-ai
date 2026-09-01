@@ -50,7 +50,7 @@ def _ensure_directories(root: Path, created: list[Path]) -> None:
 
 def _config(project_id: str, title: str, problem_type: str) -> dict[str, Any]:
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "project_id": project_id,
         "title": title,
         "contest": "CUMCM",
