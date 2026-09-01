@@ -112,6 +112,10 @@ def load_case_registry(project: Path, registry_path: Path | str | None = None) -
             raise BenchmarkError(f"cases[{index}].source must be a non-empty provenance reference")
         if problem_type not in _PROBLEM_TYPES:
             raise BenchmarkError(f"cases[{index}].problem_type is unsupported")
+        if "benchmark_command" in case:
+            command = case.get("benchmark_command")
+            if not isinstance(command, list) or not command or any(not isinstance(item, str) or not item for item in command):
+                raise BenchmarkError(f"cases[{index}].benchmark_command must be a non-empty array of strings")
         seen.add(case_id)
         normalized = dict(case)
         if "project" in case:

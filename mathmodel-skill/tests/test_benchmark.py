@@ -84,6 +84,19 @@ class BenchmarkTests(unittest.TestCase):
         with self.assertRaises(BenchmarkError):
             load_case_registry(self.root, path)
 
+    def test_registry_rejects_malformed_case_benchmark_command(self):
+        path = self.root / "bad-command.json"
+        path.write_text(json.dumps({
+            "schema_version": 1,
+            "cases": [{
+                "case_id": "x", "title": "x", "problem_type": "optimization",
+                "source": "local-test-fixture", "project": "cases/optimization",
+                "benchmark_command": ["python", 1],
+            }],
+        }), encoding="utf-8")
+        with self.assertRaises(BenchmarkError):
+            load_case_registry(self.root, path)
+
     def test_registry_accepts_all_supported_problem_profiles(self):
         cases = []
         for index, problem_type in enumerate(("forecasting", "optimization", "evaluation", "mechanism", "simulation", "classification", "statistics", "hybrid")):
