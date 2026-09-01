@@ -109,7 +109,9 @@ def evaluate_model_architecture(project: Path, config: dict[str, Any]) -> dict[s
         if not isinstance(models, list) or not models or any(not isinstance(item, str) or item not in model_ids for item in models):
             checks.append(_check("G55-MODEL-DEPENDENCY-001", "FAIL", "architecture model dependency is missing or unresolved", question_id=qid))
         for output in question.get("outputs", []) if isinstance(question.get("outputs"), list) else []:
-            if isinstance(output, dict) and isinstance(output.get("id"), str):
+            if not isinstance(output, dict) or not isinstance(output.get("id"), str) or not output.get("id"):
+                checks.append(_check("G55-OUTPUT-001", "FAIL", "output records must include a non-empty string id", question_id=qid))
+            else:
                 output_ids.add(output["id"])
         for field, units, rule in (("variables", symbol_units, "G55-SYMBOL-UNIT-001"), ("parameters", parameter_units, "G55-PARAMETER-001")):
             values = question.get(field, [])
@@ -153,7 +155,10 @@ def evaluate_model_architecture(project: Path, config: dict[str, Any]) -> dict[s
             if source_question is None:
                 checks.append(_check("G55-LINK-001", "FAIL", "architecture link source node is missing", link=link))
                 continue
-            uncertain = {item.get("id") for item in source_question.get("outputs", []) if isinstance(item, dict) and item.get("uncertain") is True}
+            uncertain = {item.get("id") for item in source_question.get("outputs", []) if isinstance(item, dict) and isinstance(item.get("id"), str) and item.get("uncertain") is True}
+            if "uncertainty_propagation" in link and not isinstance(link.get("uncertainty_propagation"), str):
+                checks.append(_check("G55-LINK-001", "FAIL", "uncertainty_propagation must be a string", link=link))
+                continue
             if uncertain.intersection(linked_outputs) and link.get("uncertainty_propagation") in {None, "none", "ignored"}:
                 checks.append(_check("UNCERTAINTY_PROPAGATION_GAP", "FAIL", "uncertain output is consumed without declared uncertainty propagation", link=link))
     if not any(item["rule"] == "G55-SYMBOL-UNIT-001" for item in checks):
@@ -199,6 +204,7 @@ def compute_upstream_hashes(project: Path, config: dict[str, Any]) -> dict[str, 
     input_paths = []
     for field in ("statements", "attachments"):
         values = config.get("inputs", {}).get(field, []) if isinstance(config.get("inputs"), dict) else []
+        values = values if isinstance(values, list) else []
     input_paths.extend((root / item).resolve() for item in values if isinstance(item, str))
     code_paths = [path for folder in (root / "analysis", root / "paper") for path in folder.rglob("*") if path.is_file() and path.suffix.lower() in {".py", ".m", ".r", ".jl", ".tex"}] if (root / "analysis").exists() or (root / "paper").exists() else []
     hashes: dict[str, Any] = {

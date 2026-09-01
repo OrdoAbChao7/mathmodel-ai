@@ -151,6 +151,15 @@ class ArchitectureFreezeTests(unittest.TestCase):
         report = evaluate_model_architecture(self.root, self.cfg)
         self.assertEqual(report["status"], "FAIL")
 
+    def test_malformed_output_uncertainty_fields_return_structured_failure(self):
+        self.install_architecture()
+        architecture = json.loads((self.root / "artifacts/model-architecture.json").read_text(encoding="utf-8"))
+        architecture["questions"][0]["outputs"][0]["id"] = []
+        architecture["links"][0]["uncertainty_propagation"] = []
+        write_json(self.root, "artifacts/model-architecture.json", architecture)
+        report = evaluate_model_architecture(self.root, self.cfg)
+        self.assertEqual(report["status"], "FAIL")
+
     def test_non_object_frozen_result_returns_structured_failure(self):
         self.install_freeze()
         frozen = json.loads((self.root / "artifacts/frozen-results.json").read_text(encoding="utf-8"))
@@ -187,6 +196,12 @@ class ArchitectureFreezeTests(unittest.TestCase):
     def test_malformed_configured_input_returns_structured_failure(self):
         self.install_freeze()
         config = {**self.cfg, "inputs": {"attachments": ["data/raw.csv", []], "statements": []}}
+        report = evaluate_results_freeze(self.root, config)
+        self.assertEqual(report["status"], "FAIL")
+
+    def test_null_configured_input_field_returns_structured_failure(self):
+        self.install_freeze()
+        config = {**self.cfg, "inputs": {"attachments": None, "statements": []}}
         report = evaluate_results_freeze(self.root, config)
         self.assertEqual(report["status"], "FAIL")
 
