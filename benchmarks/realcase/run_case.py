@@ -243,13 +243,29 @@ def log_filename(prefix: str, stage: str, suffix: str = "") -> str:
 
 def stage_solve(ws: Path, meta: dict, timeout_s: int, max_continues: int = 2) -> StageResult:
     solver_ws = ws / "solver"
+    plan = plan_stages(solver_ws)
     per_stage_timeout = max(300, timeout_s // max(1, len(SOLVE_STAGES)))
     code = 0
     log = ""
     ran = 0
     done = 0
-    for name, prompt, _sentinel in plan_stages(solver_ws):
+    failed: list[str] = []
+    for name, prompt, _sentinel in plan:
         ran += 1
+        if failed and done:
+            # Delivery pass: an earlier stage failed but usable state exists,
+            # so force the remaining stages to deliver end-to-end from the
+            # current workspace instead of aborting the solve (the observed
+            # failure mode was zero frozen answers + an untouched template
+            # paper reaching audit).
+            prompt = (
+                "DELIVERY PASS: earlier stages did not finish ("
+                + ", ".join(failed)
+                + "). Deliver THIS stage from the current workspace state anyway: "
+                "freeze the results that exist, document explicit gaps for "
+                "missing results, and do not start open-ended new investigations. "
+                + prompt
+            )
         code, log = run_opencode("mathmodel-solver", solver_ws, prompt,
                                  ws / "logs" / log_filename("solver", name), per_stage_timeout)
         attempt = 1
@@ -270,11 +286,11 @@ def stage_solve(ws: Path, meta: dict, timeout_s: int, max_continues: int = 2) ->
         if _sentinel_exists(solver_ws, name):
             done += 1
         else:
-            break
+            failed.append(name)
     final_text = parse_agent_text(log) if ran else ""
     (ws / "logs" / "solver-final.txt").write_text(final_text, encoding="utf-8")
-    ok = done == len(SOLVE_STAGES)
-    detail = f"stages_done={done}/{len(SOLVE_STAGES)} exit={code}"
+    ok = done == len(plan)
+    detail = f"stages_done={done}/{len(plan)} exit={code} failed={','.join(failed) or 'none'}"
     return StageResult("solve", ok, detail)
 
 
@@ -286,6 +302,9 @@ def instruction_for(name: str) -> str:
 
 
 def _sentinel_exists(solver_ws: Path, stage: str) -> bool:
+    if stage.startswith("q:"):
+        qid = stage[2:].strip()
+        return bool(qid) and (solver_ws / "analysis" / "results" / f"{qid}.json").is_file()
     for stage_name, sentinel_rel, _ in SOLVE_STAGES:
         if stage_name == stage:
             return (solver_ws / sentinel_rel).exists()

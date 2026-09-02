@@ -9,9 +9,11 @@ These lock the generalized fixes learned from run 20260901T193906Z-wut-2026-07:
 from __future__ import annotations
 
 import json
+import shutil
 import sys
 import tempfile
 import unittest
+import unittest.mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -140,6 +142,116 @@ class StagedSolveTests(unittest.TestCase):
         self.assertEqual(names, ["frame", "model", "experiments", "paper", "complete"])
         # The final sentinel is the completion marker used by audit/judge replay.
         self.assertEqual(run_case.SOLVE_STAGES[-1][1], run_case.SOLVER_COMPLETE_MARKER)
+
+
+class SentinelExistsTests(unittest.TestCase):
+    def test_per_question_sentinel_detected(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            ws = Path(td)
+            results = ws / "analysis" / "results"
+            results.mkdir(parents=True)
+            (results / "Q1.json").write_text("{}", encoding="utf-8")
+            self.assertTrue(run_case._sentinel_exists(ws, "q:Q1"))
+            self.assertFalse(run_case._sentinel_exists(ws, "q:Q2"))
+
+    def test_per_question_sentinel_requires_id(self):
+        self.assertFalse(run_case._sentinel_exists(Path("."), "q:"))
+
+    def test_plain_stage_sentinel_detected(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            ws = Path(td)
+            (ws / "analysis").mkdir()
+            (ws / "analysis" / "results.json").write_text("{}", encoding="utf-8")
+            self.assertTrue(run_case._sentinel_exists(ws, "experiments"))
+            self.assertFalse(run_case._sentinel_exists(ws, "frame"))
+
+
+class StageSolveDeliveryTests(unittest.TestCase):
+    """stage_solve must deliver end-to-end instead of aborting at the first
+    failed stage, and must recognize per-question sentinels (observed waste:
+    two 0-byte retry sessions for a question whose result file already existed,
+    then paper/complete skipped entirely -> untouched template paper judged)."""
+
+    SENTINELS = {
+        "frame": "artifacts/problem-map.json",
+        "model": "artifacts/model-registry.json",
+        "experiments": "analysis/results.json",
+        "paper": "paper/main.tex",
+        "complete": run_case.SOLVER_COMPLETE_MARKER,
+    }
+
+    def _run_stage_solve(self, *, fail_stages: set[str], precreate_map: bool):
+        calls: list[tuple[str, str]] = []
+
+        def stage_from_log(log_path: Path) -> str:
+            name = log_path.name[len("solver-"):-len(".json")]
+            base = name.split("-retry")[0].replace("_", ":")
+            return base
+
+        def fake_run_opencode(agent, cwd, prompt, log_path, timeout, fmt="json", session_id=None):
+            stage = stage_from_log(log_path)
+            calls.append((stage, prompt))
+            if stage not in fail_stages:
+                if stage.startswith("q:"):
+                    sentinel = cwd / "analysis" / "results" / f"{stage[2:]}.json"
+                else:
+                    sentinel = cwd / self.SENTINELS[stage]
+                sentinel.parent.mkdir(parents=True, exist_ok=True)
+                sentinel.write_text("{}", encoding="utf-8")
+            return 0, json.dumps({"type": "text", "sessionID": "ses_x",
+                                  "part": {"type": "text", "text": "ok"}})
+
+        ws = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, ws, ignore_errors=True)
+        (ws / "solver").mkdir()
+        (ws / "logs").mkdir()
+        solver_ws = ws / "solver"
+        if precreate_map:
+            (solver_ws / "artifacts").mkdir()
+            (solver_ws / "artifacts" / "problem-map.json").write_text(
+                json.dumps({"questions": [{"id": "Q1"}, {"id": "Q2"}]}), encoding="utf-8")
+            (solver_ws / "artifacts" / "model-registry.json").write_text("{}", encoding="utf-8")
+        with unittest.mock.patch.object(run_case, "run_opencode", fake_run_opencode):
+            result = run_case.stage_solve(ws, {"case_id": "t"}, timeout_s=1500)
+        return result, calls
+
+    def test_failed_question_does_not_abort_delivery(self):
+        result, calls = self._run_stage_solve(fail_stages={"q:Q2"}, precreate_map=True)
+        ran = [stage for stage, _ in calls]
+        # paper and complete must still run after the q:Q2 failure
+        self.assertIn("paper", ran)
+        self.assertIn("complete", ran)
+        # q:Q2 failed: one initial session + max_continues retries, no more
+        self.assertEqual(ran.count("q:Q2"), 3)
+        # delivery flavor only appears after a failure, and names the failed stage
+        prompts = dict(calls)
+        self.assertIn("DELIVERY PASS", prompts["paper"])
+        self.assertIn("q:Q2", prompts["paper"])
+        self.assertNotIn("DELIVERY PASS", prompts["q:Q1"])
+        self.assertFalse(result.ok)
+        self.assertIn("failed=q:Q2", result.detail)
+        self.assertIn("stages_done=3/4", result.detail)
+
+    def test_full_expanded_pipeline_counts_as_ok(self):
+        result, calls = self._run_stage_solve(fail_stages=set(), precreate_map=True)
+        self.assertTrue(result.ok)
+        self.assertIn("stages_done=4/4", result.detail)
+        self.assertIn("failed=none", result.detail)
+        self.assertNotIn("DELIVERY PASS", dict(calls)["paper"])
+
+    def test_frame_failure_still_runs_remaining_stages(self):
+        result, calls = self._run_stage_solve(fail_stages={"frame"}, precreate_map=False)
+        ran = [stage for stage, _ in calls]
+        self.assertIn("model", ran)
+        self.assertIn("complete", ran)
+        self.assertFalse(result.ok)
+        self.assertIn("failed=frame", result.detail)
+        # after model succeeds, later stages deliver with the frame failure named
+        prompts = dict(calls)
+        self.assertIn("DELIVERY PASS", prompts["paper"])
+        self.assertIn("frame", prompts["paper"])
 
 
 if __name__ == "__main__":
