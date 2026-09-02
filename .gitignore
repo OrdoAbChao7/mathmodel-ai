@@ -54,3 +54,6 @@ mathmodel-skill/vendor/
 
 # Local tooling console logs
 /.playwright-cli/
+
+# Historical v1 skill distribution kept locally for reference; not part of the v2 core.
+/skill-dist/
