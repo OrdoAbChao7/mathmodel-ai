@@ -1,18 +1,65 @@
 {
   "status": "PASS",
-  "compile": {"status": "SUCCESS", "pdf": "build/paper.pdf"},
-  "page_metrics": {"status": "SUCCESS", "total_pages": 4},
-  "page_gates": [{"rule": "PAGE-TOTAL-001", "status": "PASS"}],
-  "quality": {"release_status": "PASS"},
-  "compliance": {"status": "PASS"},
-  "g1": {"status": "PASS"},
-  "model_tournament": {"g2": {"status": "PASS"}, "g3": {"status": "PASS"}},
-  "semantic_validation": {"g4": {"status": "PASS"}, "g5": {"status": "PASS"}},
-  "model_architecture": {"status": "PASS"},
-  "results_freeze": {"status": "PASS"},
-  "writer_package": {"status": "PASS"},
-  "review_registry": {"status": "PASS", "open_critical": []},
-  "hash_checks": [{"kind": "script", "path": "solve.py", "expected": "ecec1a873291aa6be2af6bdcbdf853a0b07cd04bc0c6a051591ef60e34d7f629", "status": "PASS"}],
+  "compile": {
+    "status": "SUCCESS",
+    "pdf": "build/paper.pdf"
+  },
+  "page_metrics": {
+    "status": "SUCCESS",
+    "total_pages": 4
+  },
+  "page_gates": [
+    {
+      "rule": "PAGE-TOTAL-001",
+      "status": "PASS"
+    }
+  ],
+  "quality": {
+    "release_status": "PASS"
+  },
+  "compliance": {
+    "status": "PASS"
+  },
+  "g1": {
+    "status": "PASS"
+  },
+  "model_tournament": {
+    "g2": {
+      "status": "PASS"
+    },
+    "g3": {
+      "status": "PASS"
+    }
+  },
+  "semantic_validation": {
+    "g4": {
+      "status": "PASS"
+    },
+    "g5": {
+      "status": "PASS"
+    }
+  },
+  "model_architecture": {
+    "status": "PASS"
+  },
+  "results_freeze": {
+    "status": "PASS"
+  },
+  "writer_package": {
+    "status": "PASS"
+  },
+  "review_registry": {
+    "status": "PASS",
+    "open_critical": []
+  },
+  "hash_checks": [
+    {
+      "kind": "script",
+      "path": "solve.py",
+      "expected": "8eb1aae0a878c0bfdcdf9e89010306e595ec04fba106efb7894371dbc8aef024",
+      "status": "PASS"
+    }
+  ],
   "source_manifest": "build/source-manifest.json",
   "reproducibility_summary": "build/reproducibility-summary.json"
 }

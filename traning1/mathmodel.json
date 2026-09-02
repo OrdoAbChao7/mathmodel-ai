@@ -9,8 +9,8 @@
     "attachments": ["paper/附件.xlsx"]
   },
   "commands": {
-    "solver": ["C:\\Users\\32583\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe", "solve.py"],
-    "analyze": ["C:\\Users\\32583\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe", "enhance.py"]
+    "solver": ["python", "solve.py"],
+    "analyze": ["python", "enhance.py"]
   },
   "paper": {
     "main": "paper/main38.tex",
