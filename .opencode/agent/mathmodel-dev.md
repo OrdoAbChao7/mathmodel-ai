@@ -1,4 +1,4 @@
----
+﻿---
 description: Develops and maintains the MathModel-AI Competition OS core itself (mmcore evaluators, orchestration, tests, docs). Use for system engineering work on this repository; NOT for solving competition cases.
 mode: primary
 ---

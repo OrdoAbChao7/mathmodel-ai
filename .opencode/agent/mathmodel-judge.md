@@ -1,6 +1,6 @@
----
+﻿---
 description: Blind judge for a completed candidate solution. Evaluates evidence-derived artifacts and the paper against the problem statement, scores quality, and classifies failures using the real-case taxonomy. Read-only; returns the judge report as its final message.
-mode: subagent
+mode: all
 permission:
   bash: ask
   edit: deny

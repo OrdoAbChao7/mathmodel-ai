@@ -101,28 +101,195 @@ def init_workspace(meta: dict, case_dir: Path, run_id: str) -> Path:
     return ws
 
 
+def build_opencode_cmd(agent: str, prompt: str, session_id: str | None = None,
+                       title: str | None = None) -> list[str]:
+    cmd = ["opencode", "run", "--agent", agent, "--format", "json"]
+    if title:
+        cmd += ["--title", title]
+    if session_id:
+        cmd += ["-s", session_id]
+    cmd.append(prompt)
+    return cmd
+
+
 def run_opencode(agent: str, cwd: Path, prompt: str, log_path: Path,
-                  timeout_s: int, fmt: str = "json") -> tuple[int, str]:
-    cmd = [
-        "opencode", "run",
-        "--agent", agent,
-        "--format", fmt,
-        "--title", f"{agent}:{cwd.name}",
-        prompt,
-    ]
+                  timeout_s: int, fmt: str = "json", session_id: str | None = None) -> tuple[int, str]:
+    cmd = build_opencode_cmd(agent, prompt, session_id=session_id,
+                             title=f"{agent}:{cwd.name}")
     log_path.parent.mkdir(parents=True, exist_ok=True)
     env = dict(os.environ)
     # Subagents must not scan user-level external skills (permission noise, drift).
     env["OPENCODE_DISABLE_EXTERNAL_SKILLS"] = "1"
     env["OPENCODE_DISABLE_CLAUDE_CODE_SKILLS"] = "1"
     with log_path.open("w", encoding="utf-8", errors="replace") as log:
-        proc = subprocess.run(cmd, cwd=str(cwd), stdout=log, stderr=subprocess.STDOUT,
-                              timeout=timeout_s, env=env)
+        try:
+            proc = subprocess.run(cmd, cwd=str(cwd), stdout=log, stderr=subprocess.STDOUT,
+                                  timeout=timeout_s, env=env)
+            code = proc.returncode
+        except subprocess.TimeoutExpired:
+            # The partial JSON log is still valid evidence; report a timeout exit.
+            code = 124
     text = log_path.read_text(encoding="utf-8", errors="replace")
-    return proc.returncode, text
+    return code, text
 
 
 SOLVER_COMPLETE_MARKER = "SOLVE-COMPLETE.txt"
+
+# Staged solving: each stage is its own small session. State lives in files
+# (artifacts/, analysis/), never in session memory. This is the generalized
+# fix for the observed failure mode where a single large session spends its
+# entire context window re-reading state and dies before executing anything.
+SOLVE_STAGES: list[tuple[str, str, str]] = [
+    (
+        "frame",
+        "artifacts/problem-map.json",
+        "Read the problem statement and official attachments in ./problem/. "
+        "Produce ./artifacts/problem-map.json (questions, objectives, inputs, "
+        "outputs, constraints, evidence links). Also record a data audit at "
+        "./artifacts/data-audit.json. Do NOT design models, implement code, "
+        "or write the paper. Stop after the two JSON files exist.",
+    ),
+    (
+        "model",
+        "artifacts/model-registry.json",
+        "Read ./artifacts/problem-map.json. Design the model route per question "
+        "and implement it: ./analysis/models/*.py plus an end-to-end runnable "
+        "./analysis/run.py. Register every model in ./artifacts/model-registry.json "
+        "with method, assumptions, seed, and limitation fields. A tiny smoke run "
+        "is allowed, but do NOT run the full experiments yet and do NOT write the paper.",
+    ),
+    (
+        "experiments",
+        "analysis/results.json",
+        "Read ./artifacts/ and ./analysis/. Execute the full experiments for every "
+        "question by running ./analysis/run.py. Persist ./analysis/results.json and "
+        "all evidence JSONs (result-registry, validation, falsification). Every number "
+        "must come from a logged run. Do NOT write the paper. If per-question result "
+        "files exist under ./analysis/results/, consolidate them into "
+        "./analysis/results.json and the shared registries.",
+    ),
+    (
+        "paper",
+        "paper/main.tex",
+        "Read ./analysis/results.json, ./artifacts/*.json, and the problem statement. "
+        "Write the evidence-bound paper at ./paper/main.tex with figures under "
+        "./paper/figures/. Never invent a number; bind every claim to the frozen "
+        "results. Generate figures from the logged data.",
+    ),
+    (
+        "complete",
+        SOLVER_COMPLETE_MARKER,
+        "Final verification pass: re-run ./analysis/run.py once to confirm "
+        "reproducibility, then write a one-line summary into ./" + SOLVER_COMPLETE_MARKER
+        + ". Do not start new work.",
+    ),
+]
+
+
+def plan_stages(solver_ws: Path) -> list[tuple[str, str, Path]]:
+    """Return the stages still to run, as (name, prompt, sentinel path).
+
+    The experiments stage is dynamically expanded into per-question stages
+    driven by the structured problem-map.json produced by the frame stage.
+    """
+    pending: list[tuple[str, str, Path]] = []
+    model_registry = solver_ws / "artifacts" / "model-registry.json"
+    problem_map = solver_ws / "artifacts" / "problem-map.json"
+    results_json = solver_ws / "analysis" / "results.json"
+    for name, sentinel_rel, instruction in SOLVE_STAGES:
+        if name == "experiments" and model_registry.exists() and problem_map.exists() \
+                and not results_json.exists():
+            pending.extend(_per_question_stages(solver_ws, problem_map))
+            continue
+        sentinel = solver_ws / sentinel_rel
+        if not sentinel.exists():
+            base = (
+                f"Staged solve, stage '{name}'. " + instruction + " "
+                "Work only inside this workspace. Keep outputs small and on disk."
+            )
+            pending.append((name, base, sentinel))
+    return pending
+
+
+def _per_question_stages(solver_ws: Path, problem_map: Path) -> list[tuple[str, str, Path]]:
+    try:
+        questions = json.loads(problem_map.read_text(encoding="utf-8")).get("questions") or []
+    except (json.JSONDecodeError, OSError):
+        return []
+    stages: list[tuple[str, str, Path]] = []
+    for question in questions:
+        qid = str(question.get("id") or "").strip()
+        if not qid:
+            continue
+        sentinel = solver_ws / "analysis" / "results" / f"{qid}.json"
+        prompt = (
+            f"Staged solve, per-question stage '{qid}'. Implement and run ONLY "
+            f"question {qid} of the problem map (./artifacts/problem-map.json), "
+            f"reusing the models under ./analysis/models/. Persist this question's "
+            f"numeric results, validation, and falsification evidence into "
+            f"./analysis/results/{qid}.json (and append to any shared registries). "
+            "Do NOT work on other questions. Do NOT write the paper. Keep outputs "
+            "small and on disk."
+        )
+        stages.append((f"q:{qid}", prompt, sentinel))
+    return stages
+
+
+def log_filename(prefix: str, stage: str, suffix: str = "") -> str:
+    """Build a cross-platform log filename (Windows forbids ':' in names)."""
+    safe = stage.replace(":", "_").replace("/", "_").replace("\\", "_")
+    return f"{prefix}-{safe}{suffix}.json"
+
+
+def stage_solve(ws: Path, meta: dict, timeout_s: int, max_continues: int = 2) -> StageResult:
+    solver_ws = ws / "solver"
+    per_stage_timeout = max(300, timeout_s // max(1, len(SOLVE_STAGES)))
+    code = 0
+    log = ""
+    ran = 0
+    done = 0
+    for name, prompt, _sentinel in plan_stages(solver_ws):
+        ran += 1
+        code, log = run_opencode("mathmodel-solver", solver_ws, prompt,
+                                 ws / "logs" / log_filename("solver", name), per_stage_timeout)
+        attempt = 1
+        while not _sentinel_exists(solver_ws, name) and attempt <= max_continues:
+            # Prefer continuing the SAME session (state stays in context);
+            # fall back to a fresh session when no session id is recoverable.
+            attempt += 1
+            sid = last_session_id(log) if code == 0 else None
+            retry_prompt = (
+                f"Stage '{name}' is not finished: its required output is still missing. "
+                "Check your workspace state and complete ONLY this stage. "
+                + instruction_for(name)
+            )
+            code, log = run_opencode(
+                "mathmodel-solver", solver_ws, retry_prompt,
+                ws / "logs" / log_filename("solver", name, f"-retry{attempt}"), per_stage_timeout,
+                session_id=sid)
+        if _sentinel_exists(solver_ws, name):
+            done += 1
+        else:
+            break
+    final_text = parse_agent_text(log) if ran else ""
+    (ws / "logs" / "solver-final.txt").write_text(final_text, encoding="utf-8")
+    ok = done == len(SOLVE_STAGES)
+    detail = f"stages_done={done}/{len(SOLVE_STAGES)} exit={code}"
+    return StageResult("solve", ok, detail)
+
+
+def instruction_for(name: str) -> str:
+    for stage_name, _sentinel, instruction in SOLVE_STAGES:
+        if stage_name == name:
+            return instruction
+    return ""
+
+
+def _sentinel_exists(solver_ws: Path, stage: str) -> bool:
+    for stage_name, sentinel_rel, _ in SOLVE_STAGES:
+        if stage_name == stage:
+            return (solver_ws / sentinel_rel).exists()
+    return False
 
 
 def parse_agent_text(json_log: str) -> str:
@@ -166,7 +333,8 @@ def last_session_id(json_log: str) -> str | None:
     return None
 
 
-def stage_solve(ws: Path, meta: dict, timeout_s: int, max_continues: int = 2) -> StageResult:
+def stage_solve_monolithic(ws: Path, meta: dict, timeout_s: int, max_continues: int = 2) -> StageResult:
+    """Legacy single-session solve (kept for comparison runs)."""
     solver_ws = ws / "solver"
     cli = REPO_ROOT / "mathmodel-skill" / "scripts" / "mathmodel.py"
     prompt = (
@@ -347,6 +515,8 @@ def main() -> int:
                     help="run only the selected stage (implies --skip-solve)")
     ap.add_argument("--resume-solve", action="store_true",
                     help="with --skip-solve: continue solving the existing workspace instead of re-init")
+    ap.add_argument("--monolithic", action="store_true",
+                    help="use the legacy single-session solver instead of staged sessions")
     args = ap.parse_args()
 
     meta, case_dir = load_case(args.case)
@@ -375,14 +545,16 @@ def main() -> int:
             print(f"[runner] registry: {r.ok} {r.detail}")
             return 0 if r.ok else 1
         if args.resume_solve:
-            r = stage_solve(ws, meta, args.solve_timeout)
+            solver = stage_solve_monolithic if args.monolithic else stage_solve
+            r = solver(ws, meta, args.solve_timeout)
             print(f"[runner] solve(resume): {r.ok} {r.detail}")
             stages = [r]
     else:
         run_id = f"{_utc()}-{meta['case_id']}"
         ws = init_workspace(meta, case_dir, run_id)
         print(f"[runner] workspace: {ws}")
-        r = stage_solve(ws, meta, args.solve_timeout)
+        solver = stage_solve_monolithic if args.monolithic else stage_solve
+        r = solver(ws, meta, args.solve_timeout)
         print(f"[runner] solve: {r.ok} {r.detail}")
         stages = [r]
 

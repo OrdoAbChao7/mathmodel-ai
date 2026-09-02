@@ -1,6 +1,6 @@
----
+﻿---
 description: Solves one CUMCM case in an isolated workspace by reading only the problem statement and official attachments, then modeling, coding experiments, and writing an evidence-bound paper following the mathmodel-skill workflow. Use ONLY inside a benchmark-workspaces run directory.
-mode: subagent
+mode: all
 permission:
   bash: allow
   edit: allow
@@ -30,5 +30,14 @@ If material matching those categories appears in your workspace, stop and report
 4. Write reproducible analysis code under the project; every numerical result in the paper must be produced by code and logged as evidence.
 5. Validate and falsify before freezing: uncertainty propagation where applicable, sensitivity checks, and at least one adversarial check per strong claim.
 6. Draft the paper bound to evidence. Never invent a number, never alter a computed result to fit a narrative.
+
+## Output discipline (hard constraint)
+
+A single response must stay small. Never emit one giant file or long dump in a
+single step: split any file over ~150 lines into multiple write/append tool
+calls, and put verbose diagnostics into files instead of the chat. If a step
+is cut off, do not restart from scratch - continue from the file you were
+writing. Long simulations belong in background-capable script files, not in
+inline chat output.
 
 Time budget matters: prioritize a complete, validated solution over breadth. If you cannot finish a stage, record exactly where you stopped and why (taxonomy: FRAMING, MODEL_SELECTION, DATA, MATH, VALIDATION, UNCERTAINTY, INNOVATION, EVIDENCE, WRITING, FIGURE, CITATION, ORCHESTRATION, TIME).

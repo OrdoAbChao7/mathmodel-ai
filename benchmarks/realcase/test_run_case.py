@@ -83,5 +83,64 @@ class LastSessionIdTests(unittest.TestCase):
         self.assertIsNone(run_case.last_session_id("garbage"))
 
 
+class StagedSolveTests(unittest.TestCase):
+    def test_plan_stages_skips_completed_and_orders_rest(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            from pathlib import Path
+            ws = Path(td)
+            (ws / "artifacts").mkdir()
+            (ws / "artifacts" / "problem-map.json").write_text("{}", encoding="utf-8")
+            plan = run_case.plan_stages(ws)
+            names = [name for name, _p, _s in plan]
+            self.assertEqual(names, ["model", "experiments", "paper", "complete"])
+            # Every pending stage has a unique sentinel that does not exist yet.
+            sentinels = [s for _n, _p, s in plan]
+            self.assertEqual(len(set(sentinels)), len(sentinels))
+            self.assertTrue(all(not s.exists() for s in sentinels))
+
+    def test_instruction_for_unknown_stage_returns_empty(self):
+        self.assertEqual(run_case.instruction_for("nonexistent"), "")
+
+    def test_plan_stages_expands_experiments_per_question(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            from pathlib import Path
+            ws = Path(td)
+            (ws / "artifacts").mkdir()
+            (ws / "analysis").mkdir()
+            (ws / "artifacts" / "problem-map.json").write_text(
+                json.dumps({"questions": [{"id": "Q1"}, {"id": "Q2"}]}), encoding="utf-8")
+            (ws / "artifacts" / "model-registry.json").write_text("{}", encoding="utf-8")
+            plan = run_case.plan_stages(ws)
+            names = [name for name, _p, _s in plan]
+            # problem-map and model-registry exist -> frame/model skipped;
+            # experiments expanded to q:Q1,q:Q2; paper/complete still pending.
+            self.assertEqual(names, ["q:Q1", "q:Q2", "paper", "complete"])
+
+    def test_per_question_expansion_requires_problem_map(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            from pathlib import Path
+            ws = Path(td)
+            (ws / "artifacts").mkdir()
+            (ws / "artifacts" / "model-registry.json").write_text("{}", encoding="utf-8")
+            plan = run_case.plan_stages(ws)
+            names = [name for name, _p, _s in plan]
+            self.assertNotIn("q:Q1", names)
+            self.assertIn("experiments", names)
+
+    def test_log_filename_is_cross_platform(self):
+        name = run_case.log_filename("solver", "q:Q1/sub")
+        self.assertEqual(name, "solver-q_Q1_sub.json")
+        self.assertNotIn(":", name)
+
+    def test_stages_cover_expected_pipeline(self):
+        names = [name for name, _s, _i in run_case.SOLVE_STAGES]
+        self.assertEqual(names, ["frame", "model", "experiments", "paper", "complete"])
+        # The final sentinel is the completion marker used by audit/judge replay.
+        self.assertEqual(run_case.SOLVE_STAGES[-1][1], run_case.SOLVER_COMPLETE_MARKER)
+
+
 if __name__ == "__main__":
     unittest.main()
