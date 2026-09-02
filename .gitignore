@@ -51,3 +51,6 @@ mathmodel-skill/vendor/
 # Private real-case corpus and isolated agent workspaces (never publish).
 /benchmarks-private/
 /benchmark-workspaces/
+
+# Local tooling console logs
+/.playwright-cli/
