@@ -1,3 +1,9 @@
+<div align="center">
+  <h1>mathmodel-ai</h1>
+  <b>English</b> | <a href="./README_zh-CN.md"><b>中文</b></a>
+</div>
+<br>
+
 # CUMCM MathModel Paper Factory
 
 This project provides a reproducible workflow for producing and auditing mathematical-modeling contest papers. It includes a reusable `mathmodel-skill`, deterministic CLI checks, evidence registries, solver/analysis runners, LaTeX page-balance gates, end-to-end fixtures, a competition-max benchmark, and release packaging rules.
