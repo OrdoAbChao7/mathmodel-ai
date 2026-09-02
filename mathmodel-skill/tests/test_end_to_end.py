@@ -124,8 +124,9 @@ def _controlled_compiler_checks(project: Path, config: dict) -> tuple[str | None
     """Limit fixture compilation to the declared, local deterministic adapter."""
     paper = config["paper"]
     mode = paper.get("compiler_mode")
-    configured = (project / paper["engine"]).resolve()
-    expected = (project / "fake-compiler.cmd").resolve()
+    engine = str(paper["engine"]).replace("\\", "/")
+    configured = (project / engine).resolve()
+    expected = (project / "fake_compiler.py").resolve()
     return mode, [
         {
             "rule": "FIXTURE-COMPILER-MODE-001",
@@ -168,7 +169,8 @@ def _run_fixture(project: Path) -> dict:
         and all(check["status"] == "PASS" for check in source_checks)
         and all(check["status"] == "PASS" for check in compiler_checks)
     ):
-        engine_path = Path(cfg["paper"]["engine"])
+        engine_raw = str(cfg["paper"]["engine"]).replace("\\", "/")
+        engine_path = Path(engine_raw)
         engine = str(engine_path if engine_path.is_absolute() else project / engine_path)
         compile_result = compile_latex(project, project / cfg["paper"]["main"], engine, cfg["paper"]["jobname"])
         metrics = measure_pdf(Path(compile_result["pdf"]), Path(compile_result["aux"]))

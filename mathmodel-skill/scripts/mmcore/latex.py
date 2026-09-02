@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -152,8 +153,15 @@ def compile_latex(project: Path, main: Path, engine: str, jobname: str) -> dict[
 
     output_dir.mkdir(parents=True, exist_ok=True)
     engine_command = engine
-    configured_engine = Path(engine)
-    if not configured_engine.is_absolute() and configured_engine.suffix.lower() in {".cmd", ".bat"}:
+    configured_engine = Path(engine.replace("\\", "/"))
+    suffix = configured_engine.suffix.lower()
+    use_python_wrapper = False
+    if suffix == ".py":
+        resolved_engine = configured_engine if configured_engine.is_absolute() else (root / configured_engine).resolve()
+        if resolved_engine.is_file():
+            engine_command = str(resolved_engine)
+            use_python_wrapper = True
+    elif suffix in {".cmd", ".bat"} and not configured_engine.is_absolute():
         candidate_engine = (root / configured_engine).resolve()
         if candidate_engine.is_file():
             engine_command = str(candidate_engine)
@@ -166,6 +174,8 @@ def compile_latex(project: Path, main: Path, engine: str, jobname: str) -> dict[
         f"-aux-directory={output_dir}",
         str(source),
     ]
+    if use_python_wrapper:
+        command = [sys.executable, *command]
     # Windows batch wrappers are executable through the command interpreter,
     # but Python cannot launch them with shell=False.  The engine path is
     # already resolved from the project configuration and is checked by the
