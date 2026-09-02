@@ -1,5 +1,7 @@
 # NEXT DEVELOPMENT PHASE
 
+> **Status update 2026-09-03:** the Phase 10 milestone below has been **completed**. The OpenCode agent roles (`mathmodel-dev` / `mathmodel-solver` / `mathmodel-judge`), the real-case runner `benchmarks/realcase/run_case.py`, the staged solver pipeline, the private corpus split (TRAIN / VALIDATION / LOCKED HOLDOUT), and the first TRAIN-case run all exist now. The active frontier is executing the training loop described in `docs/handoff/real-case-training-protocol.md` — remaining TRAIN cases, failure registry, generalized fixes with regression tests, then VALIDATION, then the locked holdout. See `AGENTS.md` for the full current state. The text below is preserved as the historical Phase 10 plan.
+
 ## Phase 10 — OpenCode Integration + Real Agent Runner
 
 This is the only planned next phase after the handoff baseline. Do not reimplement the Competition OS core.
