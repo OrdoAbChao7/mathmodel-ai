@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import difflib
 import re
 import shutil
 import subprocess
@@ -14,6 +15,8 @@ from typing import Any
 _SAFE_JOBNAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 _PLACEHOLDER_RE = re.compile(r"\bTODO\b|\bTBD\b|待补充|将在后续任务中补充", re.IGNORECASE)
 _OVERFULL_RE = re.compile(r"Overfull\s+\\+hbox\s+\((?P<points>\d+(?:\.\d+)?)pt too wide\)", re.IGNORECASE)
+_TEMPLATE_MAIN = Path(__file__).resolve().parents[2] / "assets" / "project-template" / "paper" / "main.tex"
+_TEMPLATE_SIMILARITY_THRESHOLD = 0.98
 
 
 def _record(rule: str, message: str, *, path: Path | None = None, evidence: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -41,6 +44,31 @@ def find_latex_placeholders(path: Path) -> list[dict[str, Any]]:
         column = match.start() - text.rfind("\n", 0, match.start())
         matches.append({"token": match.group(0), "line": line, "column": column})
     return matches
+
+
+def _normalized_tex(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def template_similarity(main_path: Path) -> float | None:
+    """Similarity of a paper main file to the untouched project template.
+
+    Returns ``None`` when the bundled template is unavailable or the candidate
+    cannot be read; the caller must then stay silent instead of failing.
+    """
+    try:
+        candidate = Path(main_path).read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    if not candidate.strip():
+        return None
+    try:
+        source = _TEMPLATE_MAIN.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+    if _normalized_tex(candidate) == _normalized_tex(source):
+        return 1.0
+    return difflib.SequenceMatcher(None, _normalized_tex(candidate), _normalized_tex(source)).ratio()
 
 
 def _scan_log(path: Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -147,6 +175,17 @@ def compile_latex(project: Path, main: Path, engine: str, jobname: str) -> dict[
                 "LaTeX source contains unresolved release-blocking placeholders",
                 path=source,
                 evidence={"placeholders": placeholders},
+            )
+        )
+        return result
+    similarity = template_similarity(source)
+    if similarity is not None and similarity >= _TEMPLATE_SIMILARITY_THRESHOLD:
+        result["errors"].append(
+            _record(
+                "LATEX-TEMPLATE-001",
+                "LaTeX main file is still the untouched project template",
+                path=source,
+                evidence={"similarity": round(similarity, 4), "threshold": _TEMPLATE_SIMILARITY_THRESHOLD},
             )
         )
         return result

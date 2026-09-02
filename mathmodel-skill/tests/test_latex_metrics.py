@@ -15,7 +15,7 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 from mathmodel import main
-from mmcore.latex import _scan_log, compile_latex, find_latex_placeholders
+from mmcore.latex import _scan_log, compile_latex, find_latex_placeholders, template_similarity, _TEMPLATE_MAIN, _TEMPLATE_SIMILARITY_THRESHOLD
 from mmcore.pdfmetrics import evaluate_page_gates, measure_pdf, parse_aux_pages
 
 
@@ -348,6 +348,49 @@ class LatexMetricsTests(unittest.TestCase):
     def test_template_has_no_release_blocking_placeholders(self):
         template = Path(__file__).resolve().parents[1] / "assets" / "project-template" / "paper" / "main.tex"
         self.assertEqual(find_latex_placeholders(template), [])
+
+    def test_template_similarity_detects_untouched_template(self):
+        self.assertIsNotNone(_TEMPLATE_MAIN)
+        self.assertEqual(template_similarity(_TEMPLATE_MAIN), 1.0)
+
+    def test_template_similarity_ignores_edited_paper(self):
+        main_tex = self.root / "paper" / "main.tex"
+        main_tex.parent.mkdir(parents=True)
+        main_tex.write_text(
+            "\\documentclass{article}\n\\begin{document}\n"
+            "We model fragment pairing with a Monte Carlo simulation and freeze results.\n"
+            "\\end{document}\n",
+            encoding="utf-8",
+        )
+        similarity = template_similarity(main_tex)
+        self.assertIsNotNone(similarity)
+        self.assertLess(similarity, _TEMPLATE_SIMILARITY_THRESHOLD)
+
+    def test_compile_blocks_untouched_template_main(self):
+        main_tex = self.root / "paper" / "main.tex"
+        main_tex.parent.mkdir(parents=True)
+        main_tex.write_text(_TEMPLATE_MAIN.read_text(encoding="utf-8"), encoding="utf-8")
+        result = compile_latex(self.root, main_tex, "unused-engine", "paper")
+        self.assertEqual(result["status"], "FAILED")
+        self.assertTrue(any(item["rule"] == "LATEX-TEMPLATE-001" for item in result["errors"]))
+
+    def test_audit_rejects_untouched_template_paper(self):
+        write_complete_audit_project(self.root, paper_text=_TEMPLATE_MAIN.read_text(encoding="utf-8"))
+        output = StringIO()
+        with redirect_stdout(output):
+            exit_code = main(["audit", str(self.root), "--json"])
+        payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(payload["status"], "FAIL")
+        self.assertTrue(any(gate["rule"] == "LATEX-TEMPLATE-001" and gate["status"] == "FAIL" for gate in payload["page_gates"]))
+
+    def test_audit_passes_untouched_template_similarity_gate_for_real_paper(self):
+        write_complete_audit_project(self.root, paper_text="\\documentclass{article}\\begin{document}Ready\\end{document}")
+        output = StringIO()
+        with redirect_stdout(output):
+            exit_code = main(["audit", str(self.root), "--json"])
+        payload = json.loads(output.getvalue())
+        self.assertTrue(any(gate["rule"] == "LATEX-TEMPLATE-001" and gate["status"] == "PASS" for gate in payload["page_gates"]))
 
     def test_audit_marks_missing_pdf_or_aux_as_needs_manual_review(self):
         write_complete_audit_project(self.root)

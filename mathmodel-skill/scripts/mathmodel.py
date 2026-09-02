@@ -23,7 +23,7 @@ from mmcore.benchmark import BenchmarkError, load_case_registry, run_configured_
 from mmcore.submission import evaluate_submission
 from mmcore.contracts import REQUIRED_ARTIFACTS, validate_artifacts
 from mmcore.manifest import inventory_project, new_run, update_stage, sha256_file
-from mmcore.latex import compile_latex, find_latex_placeholders
+from mmcore.latex import compile_latex, find_latex_placeholders, template_similarity, _TEMPLATE_SIMILARITY_THRESHOLD
 from mmcore.pdfmetrics import evaluate_page_gates, measure_pdf
 from mmcore.package import package as package_project
 from mmcore.quality import score_quality
@@ -365,7 +365,13 @@ def _source_gates(project: Path, cfg: dict) -> tuple[Path, list[dict]]:
     placeholders = find_latex_placeholders(main_path)
     if placeholders:
         return main_path, [{"rule": "LATEX-PLACEHOLDER-001", "severity": "FAIL", "status": "FAIL", "message": "LaTeX source contains unresolved release-blocking placeholders", "evidence": {"path": str(main_path), "placeholders": placeholders}}]
-    return main_path, [{"rule": "LATEX-PLACEHOLDER-001", "severity": "FAIL", "status": "PASS", "message": "LaTeX source contains no release-blocking placeholders", "evidence": {"path": str(main_path)}}]
+    gates = [{"rule": "LATEX-PLACEHOLDER-001", "severity": "FAIL", "status": "PASS", "message": "LaTeX source contains no release-blocking placeholders", "evidence": {"path": str(main_path)}}]
+    similarity = template_similarity(main_path)
+    if similarity is not None and similarity >= _TEMPLATE_SIMILARITY_THRESHOLD:
+        gates.append({"rule": "LATEX-TEMPLATE-001", "severity": "FAIL", "status": "FAIL", "message": "LaTeX main file is still the untouched project template", "evidence": {"path": str(main_path), "similarity": round(similarity, 4), "threshold": _TEMPLATE_SIMILARITY_THRESHOLD}})
+    else:
+        gates.append({"rule": "LATEX-TEMPLATE-001", "severity": "FAIL", "status": "PASS", "message": "LaTeX main file is not the untouched project template", "evidence": {"path": str(main_path)}})
+    return main_path, gates
 
 
 def _project_relative(project: Path, value: str) -> str:
