@@ -31,6 +31,12 @@ def invoke_json(argv: list[str]) -> tuple[int, dict]:
 class Training1IntegrationTests(unittest.TestCase):
     def test_training1_has_traceable_problem_to_pdf_chain(self):
         """A missing registry link, figure role, q3 result, or page gate must fail."""
+        attachment = TRAINING1 / "paper" / "附件.xlsx"
+        if not attachment.is_file():
+            self.skipTest(
+                "training1 evidence chain requires the local competition attachment "
+                "(paper/附件.xlsx is intentionally gitignored as *.xlsx data)"
+            )
         exit_code, report = invoke_json(["build", str(TRAINING1), "--json"])
 
         compile_errors = report.get("compile", {}).get("errors", [])
