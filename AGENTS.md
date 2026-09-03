@@ -16,9 +16,9 @@ agent reasoning
 
 The project is MathModel-AI v2: a human-governed CUMCM Competition OS. The core protects modeling reasonableness, creativity, result correctness/trust, and paper clarity while preserving human ownership of consequential decisions.
 
-## Current stage (updated 2026-09-03)
+## Current stage (updated 2026-09-04)
 
-The Competition OS core (Phases 0–8) is implemented and verified. Phase 10 — OpenCode Integration + Real Agent Runner — is implemented, and real-case empirical training has started.
+The Competition OS core (Phases 0–8) is implemented and verified. Phase 10 — OpenCode Integration + Real Agent Runner — is implemented, and real-case empirical training has started (Phase 13). The first TRAIN case has been run end-to-end; the staged-solver delivery fixes and the untouched-template audit gate have landed with regression tests (see recent commits).
 
 What exists now:
 
@@ -106,7 +106,13 @@ Real-case runs use the private corpus locally, e.g. `python benchmarks/realcase/
 
 ## Next steps for this handoff
 
+**Mission document:** `docs/handoff/PHASE13-GOAL.md` — read it first; it is the standing order for Phase 13.
+
+**Immediate instruction:** inspect the actual local state first (workspaces, failure registry, recent runs). If an incomplete recoverable TRAIN run exists, resume it; otherwise continue the next unfinished TRAIN case.
+
 1. Run all verification commands above; everything must pass before any change.
-2. Read `docs/handoff/real-case-training-protocol.md` and the private split manifest (under `benchmarks-private/`).
+2. Read `docs/handoff/real-case-training-protocol.md`, `docs/handoff/PHASE13-GOAL.md`, and the private split manifest (under `benchmarks-private/`).
 3. Continue the TRAIN loop with the staged solver: one case at a time, registry every failure, land generalized fixes + regression tests in public code while keeping case-specific observations private.
-4. Do not start VALIDATION or the locked holdout until TRAIN results stabilize, and consult the human owner before opening the holdout.
+4. After 3+ TRAIN cases with valid audit + judge evidence, cluster failures across cases before choosing the next generalized fix.
+5. Do not start VALIDATION or the locked holdout until TRAIN results stabilize, and consult the human owner before opening the holdout.
+6. Do not redesign the Competition OS, do not restart Phase 10, and do not rely on prior chat history — verify everything against the actual repository.
